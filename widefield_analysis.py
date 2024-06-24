@@ -1340,21 +1340,15 @@ _ = trial._getSignMap(isPlot=True)
 plt.show()
 
 #%% single trials
-# exps=['right2left', 'top2bottom', 'left2right', 'bottom2top']
-# stim=2
-# trial=0
-# recording=stack[exps[stim]][trial][0]
-# meanimage=recording.mean(axis=2)
-# stimtable=stack[exps[stim]][trial][1]
-# stimmask=stack[exps[stim]][trial][2]
-# singletrialmov=play_movie(recording,timeaxis=2,fr=300,play=True)
-# rects=plot_traces_of_areas(singletrialmov,squarexcenter=75,squareycenter=250,squareside=10,squaredistance=25,stimsweep=exps[stim],stimonset=np.where(stimmask)[0][0])
-# smoothed=spatially_smooth_timeseries(raw_dff_hemocorrected[0],1.5)
-# raw_trial_averagedmov=play_movie(raw_trial_averaged[stim],timeaxis=2,fr=300,play=False)
-# rects=plot_traces_of_areas(raw_trial_averagedmov,squarexcenter=150,squareycenter=250,squareside=10,squaredistance=25,stimsweep=exps[stim],stimonset=np.where(stimmask)[0][0])
+k='left2right'
+trial=0
+recording=stack_time_aligned_all[k].squeeze()
+meanimage=recording.mean(axis=2)
+stimtable=stack[k][trial][1]
+onset=all_alignment_info[k]['earliest_onset']
 
-
-
+singletrialmov=play_movie(recording,timeaxis=2,fr=300,play=True)
+rects=plot_traces_of_areas(singletrialmov,squarexcenter=75,squareycenter=250,squareside=10,squaredistance=25,stimsweep=k,stimonset=onset)
 
     
 #%% PLOTTING THE FFT ANALYSIS WITH A IT MORE DETAIL
