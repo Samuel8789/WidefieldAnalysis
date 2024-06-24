@@ -1125,20 +1125,38 @@ def process_all_trials(trial_info,experimental_info):
     return results
     
 results=process_all_trials(trial_info,experimental_info)
-#%% HERE SELECT WHAT KIND OF PROECEISNG TO USE, REV IEW PLOT ETC AND DELET REST FROM MEMO
+#%% TRY TO SAVRE ALL RESULTS INDIVIDUALLY AS GROUPED STACKS
+def save_all_result(results):
+    
+    def save_results(folder,results,info=''):
+        timestr = time.strftime("%Y%m%d-%H%M%S")
+        datapath=processed_data /  f'{PurePath(folder).stem}_analysis_{info}_{timestr}.pkl'
+        if not os.path.isfile(datapath):
+            with open(datapath, 'wb') as f:
+                # Pickle the 'data' dictionary using the highest protocol available.
+                pickle.dump(results, f, pickle.HIGHEST_PROTOCOL)
+            
+        return datapath
+    
+    for data_in,stack_in in results.items():
 
-data_in='raw_blue_dff'
+        # data_in='raw_blue_dff'
+        # stack_in=results[data_in]
+        # del results
+        
+        keys = set([x[1] for x in stack_in])
+        grouped_by_direction = {}
+        for key in keys:
+            grouped_by_direction[key] = [(x[2], x[3], x[4]) for x in stack_in if x[1] == key]
+        stack=grouped_by_direction
+        
+        datapath=save_results(folder,stack,f'{data_in}_grouped')
+        
+    del results
+    gc.collect()
 
-stack_in=results[data_in]
-del results
-
-keys = set([x[1] for x in stack_in])
-grouped_by_direction = {}
-for key in keys:
-    grouped_by_direction[key] = [(x[2], x[3], x[4]) for x in stack_in if x[1] == key]
-stack=grouped_by_direction
-
-#%% SAVE PROCESSED SINGLE TRIALS
+save_all_result(results)
+#%% SAVE A SINGLE SELECTED PROCESSED GROUP STACK
 
 def save_results(folder,results,info=''):
     timestr = time.strftime("%Y%m%d-%H%M%S")
@@ -1150,7 +1168,19 @@ def save_results(folder,results,info=''):
         
     return datapath
 
-datapath=save_results(folder,stack,'raw_blue_dff_grouped')
+
+data_in='raw_blue_dff'
+stack_in=results[data_in]
+del results
+gc.collect()
+
+keys = set([x[1] for x in stack_in])
+grouped_by_direction = {}
+for key in keys:
+    grouped_by_direction[key] = [(x[2], x[3], x[4]) for x in stack_in if x[1] == key]
+stack=grouped_by_direction
+datapath=save_results(folder,stack,f'{data_in}_grouped')
+
 
 #%% LOAD DATA FROM FILE
 def load_data(folder):
@@ -1255,17 +1285,20 @@ stack_time_aligned_all,trial_averaged_movies, all_alignment_info=align_and_trial
 #%% soem plotting reviewing trial averaged movies
 stimulus='right2left'
 stimonset=58
+onset=all_alignment_info[stimulus]['earliest_onset']
+
 plt.close('all')
 plot_4exp_trials(stack_time_aligned_all,stimonset,x=200,y=200,width=1)
 for k,v in trial_averaged_movies.items():
     trialaversgeddff=v
-        
+    onset=all_alignment_info[k]['earliest_onset']
+
     cammovie=play_movie(trialaversgeddff,timeaxis=0,fr=300)
     test=play_movie(trialaversgeddff,timeaxis=0,fr=30,play=False)
     # smoothed=cm.movie(spatially_smooth_timeseries(trialaversgeddff,axis=0,sigma=1.5))
     # test=play_movie(smoothed,timeaxis=0,fr=30,play=True)
 
-    rects=plot_traces_of_areas(test,squarexcenter=175,squareycenter=175,squareside=2,squaredistance=20,stimsweep=k,stimonset=stimonset)
+    rects=plot_traces_of_areas(test,squarexcenter=175,squareycenter=175,squareside=2,squaredistance=20,stimsweep=k,stimonset=onset)
     # cammovie=play_movie(trialaversgeddff,timeaxis=0,fr=10,play=True)
 
 
