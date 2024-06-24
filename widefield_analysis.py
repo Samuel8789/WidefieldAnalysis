@@ -392,9 +392,9 @@ def plot_4exp_trials(stack_time_aligned_f, onset,x=150,y=150,width=10):
 
     arrs=[]
     times=[]
-    for j in range(4):
+    for i,j in enumerate(stack_time_aligned_f.keys()):
         arrs.append(stack_time_aligned_f[j][m].mean(axis=(0,1)))
-        times.append(np.arange(arrs[j].shape[0]) )
+        times.append(np.arange(arrs[i].shape[0]) )
    
     f,ax=plt.subplots(2,2,figsize=(10, 6))
     f2,ax2=plt.subplots(2,2,figsize=(10, 6))
@@ -1186,12 +1186,11 @@ def load_data(folder):
     return loaded_data
 
 stack=load_data(folder)
-data_in='raw_blue_dff'
 
 #%% 
-def align_and_trial_average(stack,data_in):
+def align_and_trial_average(stack):
 
-    def align_trials_onset_and_cut(stimon_info_t, trial_array):
+    def align_trials_onset_and_cut(stimon_info_t, trial_array, all_alignment_info,stimulus):
         
         onsets=[]
         preframe_length_min = np.min(list(map(lambda x: np.sum(x), np.invert(stimon_info_t))))
@@ -1201,182 +1200,113 @@ def align_and_trial_average(stack,data_in):
         onset_aligned=[trial[:,:,starts[i]:] for i,trial in enumerate(trial_array)]
 
         min_length: np.int32 = np.min([trial.shape[2] for trial in onset_aligned])
+        max_length: np.int32 = np.max([trial.shape[2] for trial in onset_aligned])
+        
+        if stimulus=='left2right' and 'right2left' in all_alignment_info.keys():
+             if min_length>all_alignment_info['right2left']['shortest_trial_frames']:
+                 min_length=all_alignment_info['right2left']['shortest_trial_frames']
+        
+        elif stimulus=='right2left' and 'left2right' in all_alignment_info.keys():
+            if min_length>all_alignment_info['left2right']['shortest_trial_frames']:
+                min_length=all_alignment_info['left2right']['shortest_trial_frames']
+            
+        elif stimulus=='top2bottom' and 'bottom2top' in all_alignment_info.keys():
+            if min_length>all_alignment_info['bottom2top']['shortest_trial_frames']:
+                min_length=all_alignment_info['bottom2top']['shortest_trial_frames']
+        elif stimulus=='bottom2top' and 'top2bottom' in all_alignment_info.keys():
+            if min_length>all_alignment_info['top2bottom']['shortest_trial_frames']:
+                min_length=all_alignment_info['top2bottom']['shortest_trial_frames']
+
+
+        
         stack_cut: list[npt.NDArray[np.float64]] = [trial[:, :, :min_length] for trial in onset_aligned]
         stack_time_aligned: npt.NDArray[np.float64] = np.stack(stack_cut, axis=3)
-
-        return stack_time_aligned,preframe_length_min
+        
+        alignment_info={'all_prestim_frames':list(map(lambda x: np.sum(x), np.invert(stimon_info_t))),
+                        'earliest_onset':preframe_length_min,
+                        'cut_starts':starts,
+                        'shortest_trial_frames':min_length,
+                        'longest_trial_frames':max_length                           
+                        }
         
 
-    #for testing
-    key='left2right'
-    item=stack[key]
+        return stack_time_aligned, alignment_info
         
+    stack_time_aligned_all={}
+    trial_averaged_movies={}
+    all_alignment_info={}
+
     for key, item in stack.items():
-        
         stack_new=list(map(lambda x: x[0], item))
         stimon_info_t = list(map(lambda x: x[2], item))
         
-        stack_time_aligned,onset=align_trials_onset_and_cut(stimon_info_t,stack_new)
+        stack_time_aligned, alignment_info=align_trials_onset_and_cut(stimon_info_t,stack_new,all_alignment_info,key)
         trial_averaged=stack_time_aligned.mean(axis=3)
         
-    return trial_averaged
+        stack_time_aligned_all[key]=stack_time_aligned
+        trial_averaged_movies[key]=cm.movie(np.transpose(trial_averaged, (2, 0, 1)))
+        all_alignment_info[key]=alignment_info
+        
+    return stack_time_aligned_all,trial_averaged_movies, all_alignment_info
 
-trial_averaged=align_and_trial_average(stack,data_in)
-trial_averaged_datapath=save_results(folder,stack,'raw_blue_dff_trial_averaged')
+stack_time_aligned_all,trial_averaged_movies, all_alignment_info=align_and_trial_average(stack)
 
-#%%
-stack_time_aligned_all=[]
-movies=[]
-dffmovies=[]
-dfmovies=[]
-raw_trial_averaged=[]
+#%% soem plotting reviewing trial averaged movies
+stimulus='right2left'
+stimonset=58
+plt.close('all')
+plot_4exp_trials(stack_time_aligned_all,stimonset,x=200,y=200,width=1)
+for k,v in trial_averaged_movies.items():
+    
+    trialaversgeddff=v
+        
+    # cammovie=play_movie(trialaversgeddff,timeaxis=0,fr=300)
+    test=play_movie(trialaversgeddff,timeaxis=0,fr=30,play=False)
+    # smoothed=cm.movie(spatially_smooth_timeseries(trialaversgeddff,axis=0,sigma=1.5))
+    # test=play_movie(smoothed,timeaxis=0,fr=30,play=True)
 
-if 'dff' in data_in:
-    already_dff=True
+    rects=plot_traces_of_areas(test,squarexcenter=175,squareycenter=175,squareside=2,squaredistance=20,stimsweep=k,stimonset=stimonset)
+    # cammovie=play_movie(trialaversgeddff,timeaxis=0,fr=10,play=True)
 
 
-if not already_dff:
-    trial_averaged_df,trial_averaged_dff=calculate_dff(trial_averaged,onset,time_axis=2)
-    raw_trial_averaged.append(trial_averaged)
-    dfmovies.append(cm.movie(np.transpose(trial_averaged_df, (2, 0, 1))))
-    movies.append(cm.movie(np.transpose(raw_trial_averaged, (2, 0, 1))))
 
-else:
-    trial_averaged_dff=trial_averaged
-
-dffmovies.append(cm.movie(np.transpose(trial_averaged_dff, (2, 0, 1))))
-stack_time_aligned_all.append(stack_time_aligned)
-
+#%% GET PHASE MAPS BASAED OIN THE FIRST FREQUENCY COMPONENT OF THE FFT, 
  
-plot_4exp_trials(stack_time_aligned_all,onset,x=200,y=200,width=1)
-cammovie=play_movie(dffmovies[1],timeaxis=0,gain=1.1,fr=50,play=True)
-rects=plot_traces_of_areas(cammovie,squarexcenter=100,squareycenter=100,squareside=1,squaredistance=25,stimonset=59)
-
+def get_phase_maps1(movies:dict):
+    """
+    IThis is what the elife paper suggest, just get the first frequency component, other than 0, is it w=ill be the closest to the stimulus frequency, which is 1/stim time
+    """
     
+    phase_maps={}
+    powe_maps={}
+    for k,v in movies.items():
+        spectrumMovie = np.fft.fft(v, axis=0)
+        freqs = np.fft.fftfreq(v.shape[0])
+        
+        #generate power movie
+        powerMovie = (np.abs(spectrumMovie) * 2.) / np.size(v, 0)
+        powerMap = np.abs(powerMovie[1,:,:])
+         
+        #generate phase movie
+        phaseMovie = np.angle(spectrumMovie)
+        phaseMap = -1 * phaseMovie[1,:,:]
+        phaseMap = phaseMap % (2 * np.pi)
+        
+        phase_maps[k]=phaseMap
+        powe_maps[k]=powerMap
+        
+    return phase_maps,powe_maps
 
+phase_maps,powe_maps=get_phase_maps1(trial_averaged_movies)
+#%% TO DO
+def convert_phase_to_screen_pos(phase_maps):
+    pass
     
-#%% FFT1
-
-phase_map: dict[str, npt.NDArray] = {}
-magnitude_map: dict[str, npt.NDArray] = {}
-smoothed_phase_map: dict[str, npt.NDArray] = {}
-sign_map: npt.NDArray | None = None
-phase_maps=[]
-power_maps=[]
-
-    # spectrumMovie = np.fft.fft(movie, axis=0)
-    # #generate power movie
-    # powerMovie = (np.abs(spectrumMovie) * 2.) / np.size(movie, 0)
-    # powerMap = np.abs(powerMovie[1,:,:])
-    
-    # #generate phase movie
-    # phaseMovie = np.angle(spectrumMovie)
-    # phaseMap = -1 * phaseMovie[1,:,:]
-    # phaseMap = phaseMap % (2 * np.pi)
-    
-    # phase_maps.append(phaseMap)
-    # power_maps.append(powerMap)
-
-    
-    #%% FFT2
-    # stack_time_aligned=trial_averaged_dff
-
-    # # stack_time_aligned: npt.NDArray[np.float64] = stack_time_aligned.mean(axis=3)
-    # stack_time_aligned = np.transpose(stack_time_aligned, (2, 0, 1))
-    # grand_average_stack: npt.NDArray[np.float64] = np.mean(np.concatenate(stack_new, axis=2), axis=2)
-    # sweep_rate_temp=sweep_rate[key]
-    # # find outliers and remove them
-    # # these outliers correspond to frames where
-    # # a large whitening artifact occurs
-    # stack_mean = zscore(np.mean(stack_time_aligned, axis=(1, 2)))  # mean intensity of each frame
-
-    # # outliers = stack_mean > 2
-
-    # # stack_time_aligned = stack_time_aligned[~outliers, :, :]
-
-    # freqs: npt.NDArray = rfftfreq(stack_time_aligned.shape[0], (1 / camera_sampling_rate))
-
-    # fourier_transf: npt.NDArray = rfft(stack_time_aligned, axis=0)
-
-    # deviations: npt.NDArray = np.abs(freqs - sweep_rate_temp)
-
-    # nearest_maps: npt.NDArray = fourier_transf[np.argmin(deviations), :, :]
-    # magnitude_map_t: np.float64 = np.absolute(nearest_maps)
-    # phase_map_t: np.float64 = np.angle(nearest_maps)
-
-    # # smoothed_phase_map_t = gaussian_filter(phase_map_t, phase_map_smoothing_factor)
-
- 
-    # # min_length: np.int32 = np.min([trial.size for trial in stimon_info_t])
-    # # stack_cut: list[npt.NDArray[np.float64]] = [trial[:min_length] for trial in stimon_info_t]
-    # # stimon_info_t: npt.NDArray[np.float64] = np.stack(stack_cut, axis=0)
-    # # stimon_info_t = np.ceil(np.mean(stimon_info_t, axis=0)).astype(np.uint8)
-    # # # stimon_info_t = stimon_info_t[~outliers]
-
-
-    # # stack_loop=stack_time_aligned
-    # # magnitude_map[key]=magnitude_map_t
-    # # phase_map[key]=phase_map_t
-    # # smoothed_phase_map[key]=smoothed_phase_map_t
-    # # stimon_on_loop=stimon_info_t
-
-    # # direction_order.append(key)
-    # # stimon_info.append(stimon_on_loop)
-    # # stack_time_aligned_f.append(stack_loop)
-    # # del stack_loop
-    
-    #%% MAPS
-    
-azimuth_map=   (phase_maps[0]+  phase_maps[2])/2
-altitude_map=   (phase_maps[1]+  phase_maps[3])/2
-
-    
-    
-direction_length = list(map(lambda x: x.shape[0], stack_time_aligned_f))
-height = stack_time_aligned_f[0].shape[1]
-width = stack_time_aligned_f[0].shape[2]
-
-stack_time_aligned_final = np.concatenate(stack_time_aligned_f, axis=0)
-
-stimon_info_final = np.concatenate(stimon_info, axis=0)
-
-save_processed_data=PurePath(folder) / PurePath('NewProcess') 
-
-np.save(os.path.join(str(save_processed_data), 'stimon_info.npy'), stimon_info)
-
-
-
-save_path = os.path.join(os.path.join(str(save_processed_data), f"stack_time_aligned.npy"))
-np.save(save_path, stack_time_aligned_final)
-
-
-# save_path = os.path.join(os.path.join(str(save_processed_data), f"stack_time_aligned.avi"))
-
-# maxmov = np.nanpercentile(stack_time_aligned_final[::max(1, len(stack_time_aligned_final) // 100)], 99.75)
-
-# minmov = np.nanpercentile(stack_time_aligned_final[::max(1, len(stack_time_aligned_final) // 100)], 1)
-
-# data = 255 * (stack_time_aligned_final - minmov) / (maxmov - minmov)
-# np.clip(data, 0, 255, data)
-# data = data.astype(np.uint8)
-
-# try:
-#     fourcc = cv2.FOURCC('I', 'Y', 'U', 'V')
-# except AttributeError:
-#     fourcc = cv2.VideoWriter_fourcc(*'IYUV')
-
-# out = cv2.VideoWriter(save_path, fourcc, camera_sampling_rate, (data.shape[2], data.shape[1]), isColor=True)
-# for d in data:
-#     out.write(cv2.cvtColor(d, cv2.COLOR_GRAY2BGR))
 
 #%% SIGN MAP
 
 altitude_map = phase_maps["top2bottom"] - phase_maps["bottom2top"]
 azimuth_map = phase_maps["left2right"] - phase_maps["right2left"]
-
-
-vasculature_map = tf.imread(os.path.join(example_folder, 'example_vasculature_map.tif'))
-
 
 params = {
           'phaseMapFilterSigma': 3,
@@ -1394,15 +1324,11 @@ params = {
           'splitOverlapThr': 1.1,
           'mergeOverlapThr': 0.1
           }
-
-
-
-
 trial = rm.RetinotopicMappingTrial(altPosMap=altitude_map,
                                    aziPosMap=azimuth_map,
                                    altPowerMap=None,
                                    aziPowerMap=None,
-                                   vasculatureMap=vasculature_map,
+                                   vasculatureMap=None,
                                    mouseID='test',
                                    dateRecorded='160612',
                                    comments='This is an example.',
@@ -1414,63 +1340,26 @@ _ = trial._getSignMap(isPlot=True)
 plt.show()
 
 #%% single trials
-exps=['right2left', 'top2bottom', 'left2right', 'bottom2top']
-stim=2
-trial=0
-recording=stack[exps[stim]][trial][0]
-meanimage=recording.mean(axis=2)
-stimtable=stack[exps[stim]][trial][1]
-stimmask=stack[exps[stim]][trial][2]
-
-singletrialmov=play_movie(recording,timeaxis=2,fr=300,play=True)
-rects=plot_traces_of_areas(singletrialmov,squarexcenter=75,squareycenter=250,squareside=10,squaredistance=25,stimsweep=exps[stim],stimonset=np.where(stimmask)[0][0])
-
-smoothed=spatially_smooth_timeseries(raw_dff_hemocorrected[0],1.5)
-
-raw_trial_averagedmov=play_movie(raw_trial_averaged[stim],timeaxis=2,fr=300,play=False)
-rects=plot_traces_of_areas(raw_trial_averagedmov,squarexcenter=150,squareycenter=250,squareside=10,squaredistance=25,stimsweep=exps[stim],stimonset=np.where(stimmask)[0][0])
+# exps=['right2left', 'top2bottom', 'left2right', 'bottom2top']
+# stim=2
+# trial=0
+# recording=stack[exps[stim]][trial][0]
+# meanimage=recording.mean(axis=2)
+# stimtable=stack[exps[stim]][trial][1]
+# stimmask=stack[exps[stim]][trial][2]
+# singletrialmov=play_movie(recording,timeaxis=2,fr=300,play=True)
+# rects=plot_traces_of_areas(singletrialmov,squarexcenter=75,squareycenter=250,squareside=10,squaredistance=25,stimsweep=exps[stim],stimonset=np.where(stimmask)[0][0])
+# smoothed=spatially_smooth_timeseries(raw_dff_hemocorrected[0],1.5)
+# raw_trial_averagedmov=play_movie(raw_trial_averaged[stim],timeaxis=2,fr=300,play=False)
+# rects=plot_traces_of_areas(raw_trial_averagedmov,squarexcenter=150,squareycenter=250,squareside=10,squaredistance=25,stimsweep=exps[stim],stimonset=np.where(stimmask)[0][0])
 
 
 
-#%%trialaveraged dff movies
-exps=['right2left', 'top2bottom', 'left2right', 'bottom2top']
 
-plt.close('all')
-for stim in range(4):
     
-    trialaversgeddff=dffmovies[stim]
-        
-    # cammovie=play_movie(trialaversgeddff,timeaxis=0,fr=300)
-    test=play_movie(trialaversgeddff,timeaxis=0,fr=30,play=False)
-    # smoothed=cm.movie(spatially_smooth_timeseries(trialaversgeddff,axis=0,sigma=1.5))
-    # test=play_movie(smoothed,timeaxis=0,fr=30,play=True)
-
-    rects=plot_traces_of_areas(test,squarexcenter=175,squareycenter=175,squareside=2,squaredistance=20,stimsweep=exps[stim],stimonset=64)
-    # cammovie=play_movie(trialaversgeddff,timeaxis=0,fr=10,play=True)
- #%%
-phase_maps={}
-powe_maps={}
-k=0
-item=dffmovies[k]
-for k,item in enumerate(dffmovies):
-    spectrumMovie = np.fft.fft(item, axis=0)
-    freqs = np.fft.fftfreq(item.shape[0])
-    
-    #generate power movie
-    powerMovie = (np.abs(spectrumMovie) * 2.) / np.size(item, 0)
-    powerMap = np.abs(powerMovie[1,:,:])
-     
-    #generate phase movie
-    phaseMovie = np.angle(spectrumMovie)
-    phaseMap = -1 * phaseMovie[1,:,:]
-    phaseMap = phaseMap % (2 * np.pi)
-    
-    phase_maps[exps[k]]=phaseMap
-    powe_maps[exps[k]]=powerMap
-    
-    #%%
-k=1
-item=dffmovies[k]
+#%% PLOTTING THE FFT ANALYSIS WITH A IT MORE DETAIL
+k='top2bottom'
+item=trial_averaged_movies[k]
 spectrumMovie = np.fft.fft(item, axis=0)
 freqs = np.fft.fftfreq(item.shape[0])
 
@@ -1514,40 +1403,25 @@ for p in [150,175,200,225]:
     max_reconstructed_index = np.argmax(reconstructed_signal.real)
     axs[2].axvline(x=max_reconstructed_index, color='r', linestyle='--', label=f'Max of Reconstructed Signal')
     plt.show()
-    #%%
+#%% PLOTTING MAPS INDEPENDENTLY
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 f,ax=plt.subplots(2,2)
 for i,item in enumerate(phase_maps.values()):
     im=ax.flatten()[i].imshow(item  ,cmap='hsv')
-
+altitude_map=phase_maps['bottom2top']-phase_maps['top2bottom']
+azimuth_map=phase_maps['right2left']-phase_maps['left2right'] 
 f,ax=plt.subplots(1,2)
-im=ax[0].imshow(phase_maps['right2left']-phase_maps['left2right']   ,cmap='hsv',vmin=0, vmax=2*np.pi)
-im=ax[1].imshow(phase_maps['bottom2top']-phase_maps['top2bottom']   ,cmap='hsv',vmin=0, vmax=2*np.pi)
+im=ax[0].imshow(altitude_map  ,cmap='hsv',vmin=0, vmax=2*np.pi)
+im=ax[1].imshow(azimuth_map  ,cmap='hsv',vmin=0, vmax=2*np.pi)
 divider = make_axes_locatable(ax[1])
 cax = divider.append_axes("right", size="5%", pad=0.05)
 cbar = f.colorbar(im, cax=cax)
 cbar.set_label('Value')
 
-altitude_map=phase_maps['bottom2top']-phase_maps['top2bottom']
-azimuth_map=phase_maps['right2left']-phase_maps['left2right']  
-#%%
-stack_time_aligned=dffmovies[stim]
+ 
 
-sweep_rate_temp=sweep_rate[key]
 
-freqs: npt.NDArray = rfftfreq(stack_time_aligned.shape[0], (1 / camera_sampling_rate))
-
-fourier_transf: npt.NDArray = rfft(stack_time_aligned, axis=0)
-
-deviations: npt.NDArray = np.abs(freqs - sweep_rate_temp)
-
-nearest_maps: npt.NDArray = fourier_transf[np.argmin(deviations), :, :]
-magnitude_map_t: np.float64 = np.absolute(nearest_maps)
-phase_map_t: np.float64 = np.angle(nearest_maps)
-f,ax=plt.subplots()
-ax.imshow(phase_map_t)
-
-#%% AVELET
+#%% WAVELET ANALYSIS
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -1557,10 +1431,9 @@ import pywt
 # For demonstration, let's generate a sample signal
 # Replace this with your actual signal data
 # signal = ... 
-
+k='top2bottom'
 # Sample signal generation (Replace this with your actual signal)
-signal=dffmovies[3]
-signal=all_trialaveraged_dff['R2L']
+signal=trial_averaged_movies[k]
 #
 # smoothed=gaussian_smooth(signal, sigma=0, spatial=False, temporal=True,time_axis=0,radius=0)
 smoothed=signal
