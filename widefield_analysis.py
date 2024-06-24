@@ -1049,8 +1049,8 @@ def process_all_trials(trial_info,experimental_info):
         if not experimental_info['blue_only']:
             raw_violet,raw_dff_violet,raw_df_violet,metadata=proces_single_color(mot_corrected,metadata,image_info,'violet_mask')
        
-        plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, i, raw_blue)
-        cammovie=play_movie(trialaversgeddff,timeaxis=0,fr=300)
+        # plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, i, raw_blue)
+        # cammovie=play_movie(raw_dff_blue,timeaxis=2,fr=300)
         
         if experimental_info['do_hist_equal']:
             equalized_blue=normalize_his_equal(raw_blue)
@@ -1260,7 +1260,7 @@ plot_4exp_trials(stack_time_aligned_all,stimonset,x=200,y=200,width=1)
 for k,v in trial_averaged_movies.items():
     trialaversgeddff=v
         
-    # cammovie=play_movie(trialaversgeddff,timeaxis=0,fr=300)
+    cammovie=play_movie(trialaversgeddff,timeaxis=0,fr=300)
     test=play_movie(trialaversgeddff,timeaxis=0,fr=30,play=False)
     # smoothed=cm.movie(spatially_smooth_timeseries(trialaversgeddff,axis=0,sigma=1.5))
     # test=play_movie(smoothed,timeaxis=0,fr=30,play=True)
