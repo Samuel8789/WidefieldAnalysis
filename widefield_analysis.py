@@ -752,7 +752,7 @@ def align_timestamps_and_stim_onset(time_file:str,analog_data_full, image_info):
 
     return metadata,stim_info
 
-def plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, trial_nr,interp_blue=np.empty(0),interp_violet=np.empty(0)):
+def plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, trial_nr,interp_blue=np.empty((0,0,0)),interp_violet=np.empty((0,0,0))):
     data_to_stimulus=zscore(image_data.mean(axis=(0, 1)))
     timestamps_nointerp=metadata['analog_aligned']['frame_time']
 
@@ -1049,7 +1049,8 @@ def process_all_trials(trial_info,experimental_info):
         if not experimental_info['blue_only']:
             raw_violet,raw_dff_violet,raw_df_violet,metadata=proces_single_color(mot_corrected,metadata,image_info,'violet_mask')
        
-        # plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, i, raw_blue,raw_violet)
+        plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, i, raw_blue)
+        cammovie=play_movie(trialaversgeddff,timeaxis=0,fr=300)
         
         if experimental_info['do_hist_equal']:
             equalized_blue=normalize_his_equal(raw_blue)
@@ -1257,7 +1258,6 @@ stimonset=58
 plt.close('all')
 plot_4exp_trials(stack_time_aligned_all,stimonset,x=200,y=200,width=1)
 for k,v in trial_averaged_movies.items():
-    
     trialaversgeddff=v
         
     # cammovie=play_movie(trialaversgeddff,timeaxis=0,fr=300)
@@ -1431,7 +1431,7 @@ import pywt
 # For demonstration, let's generate a sample signal
 # Replace this with your actual signal data
 # signal = ... 
-k='top2bottom'
+k='right2left'
 # Sample signal generation (Replace this with your actual signal)
 signal=trial_averaged_movies[k]
 #
