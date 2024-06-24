@@ -359,6 +359,8 @@ def denoise_pca(trace,n_components=0.9):
         reconstructed_frame = pca.inverse_transform(reduced_frame)
     
         reconstructed_frame = reconstructed_frame.reshape(trace.shape[0], trace.shape[1])
+        # reconstructed_frame=reconstructed_frame.astype(dtype=np.uint8)
+        #HERE IF I USE THIS ON RAW DATA THE ARRAY GOS TO  AS ALL VALUES ARE DECIMal, HOWEVER If I DONT IT uses TOO MUCH MEMORY AND cod emight crash for lack of memoeyr
         reconstructed.append(reconstructed_frame)
     
     reconstructed= np.stack(reconstructed, axis=2)
@@ -1051,70 +1053,70 @@ def process_all_trials(trial_info,experimental_info):
         # cammovie=play_movie(raw_dff_blue,timeaxis=2,fr=300)
         
         if experimental_info['do_hist_equal']:
-            equalized_blue=normalize_his_equal(raw_blue)
+            # equalized_blue=normalize_his_equal(raw_blue)
             dff_equalized_blue=normalize_his_equal(raw_dff_blue)
             if store_all or experimental_info['blue_only']:
-                results['raw_blue_eq'].append((path[0], path[1], equalized_blue, path[3], stim_info))
+                # results['raw_blue_eq'].append((path[0], path[1], equalized_blue, path[3], stim_info))
                 results['raw_blue_dff_eq'].append((path[0], path[1], dff_equalized_blue, path[3], stim_info))
     
             if experimental_info['do_pca_denopising']:
-                reconstructed_eq_blue=denoise_pca(equalized_blue)
+                # reconstructed_eq_blue=denoise_pca(equalized_blue)
                 reconstructed_eq_blue_dff=denoise_pca(dff_equalized_blue)
                 if store_all or experimental_info['blue_only']:
-                    results['raw_blue_eq_denoised'].append((path[0], path[1], reconstructed_eq_blue, path[3], stim_info))
+                    # results['raw_blue_eq_denoised'].append((path[0], path[1], reconstructed_eq_blue, path[3], stim_info))
                     results['raw_blue_dff_eq_denoised'].append((path[0], path[1], reconstructed_eq_blue_dff, path[3], stim_info))
     
                 
         elif experimental_info['do_pca_denopising']:
-            reconstructed_raw_blue=denoise_pca(raw_blue)           
+            # reconstructed_raw_blue=denoise_pca(raw_blue)           
             reconstructed_raw_dff_blue=denoise_pca(raw_dff_blue)            
             if store_all or experimental_info['blue_only']:
-                results['raw_blue_denoised'].append((path[0], path[1], reconstructed_raw_blue, path[3], stim_info))
+                # results['raw_blue_denoised'].append((path[0], path[1], reconstructed_raw_blue, path[3], stim_info))
                 results['raw_blue_dff_denoised'].append((path[0], path[1], reconstructed_raw_dff_blue, path[3], stim_info))
             
                  
         results['raw_blue_dff'].append((path[0], path[1], raw_dff_blue, path[3], stim_info))
-        results['raw_blue_df'].append((path[0], path[1], raw_df_blue, path[3], stim_info))
-        results['raw_blue'].append((path[0], path[1], raw_blue, path[3], stim_info))
+        # results['raw_blue_df'].append((path[0], path[1], raw_df_blue, path[3], stim_info))
+        # results['raw_blue'].append((path[0], path[1], raw_blue, path[3], stim_info))
         
         if not experimental_info['blue_only']:
                  
             if experimental_info['do_hist_equal']:
-                equalized_violet=normalize_his_equal(raw_violet)
+                # equalized_violet=normalize_his_equal(raw_violet)
                 dff_equalized_violet=normalize_his_equal(raw_dff_violet)
              
                 if experimental_info['do_pca_denopising']:
-                    reconstructed_eq_violet=denoise_pca(equalized_violet)
+                    # reconstructed_eq_violet=denoise_pca(equalized_violet)
                     reconstructed_eq_violet_dff=denoise_pca(dff_equalized_violet)
                 
-                    full_hemocorrected=hemocorrection(reconstructed_eq_blue,reconstructed_eq_violet,image_info,metadata,experimental_info['kernel_smoothing_factor'])
+                    # full_hemocorrected=hemocorrection(reconstructed_eq_blue,reconstructed_eq_violet,image_info,metadata,experimental_info['kernel_smoothing_factor'])
                     full_hemocorrected_dff=hemocorrection(reconstructed_eq_blue_dff,reconstructed_eq_violet_dff,image_info,metadata,experimental_info['kernel_smoothing_factor'])
-                    results['full'].append((path[0], path[1], full_hemocorrected[0], path[3], stim_info))
+                    # results['full'].append((path[0], path[1], full_hemocorrected[0], path[3], stim_info))
                     results['full_dff'].append((path[0], path[1], full_hemocorrected_dff[0], path[3], stim_info))
     
                 else:
                     
-                    no_pca_hemocorrected=hemocorrection(equalized_blue,equalized_violet,image_info,metadata,experimental_info['kernel_smoothing_factor'])
+                    # no_pca_hemocorrected=hemocorrection(equalized_blue,equalized_violet,image_info,metadata,experimental_info['kernel_smoothing_factor'])
                     no_pca_hemocorrected_dff=hemocorrection(dff_equalized_blue,dff_equalized_violet,image_info,metadata,experimental_info['kernel_smoothing_factor'])
                     
-                    results['no_pca'].append((path[0], path[1], no_pca_hemocorrected[0], path[3], stim_info))
+                    # results['no_pca'].append((path[0], path[1], no_pca_hemocorrected[0], path[3], stim_info))
                     results['no_pca_dff'].append((path[0], path[1], no_pca_hemocorrected_dff[0], path[3], stim_info))
     
             elif experimental_info['do_pca_denopising']:
-                reconstructed_raw_violet=denoise_pca(raw_violet)
+                # reconstructed_raw_violet=denoise_pca(raw_violet)
                 reconstructed_raw_dff_violet=denoise_pca(raw_dff_violet)
             
-                no_eq_hemocorrected=hemocorrection(reconstructed_raw_blue,reconstructed_raw_violet,image_info,metadata,experimental_info['kernel_smoothing_factor'])
+                # no_eq_hemocorrected=hemocorrection(reconstructed_raw_blue,reconstructed_raw_violet,image_info,metadata,experimental_info['kernel_smoothing_factor'])
                 no_eq_hemocorrected_dff=hemocorrection(reconstructed_raw_dff_blue,reconstructed_raw_dff_violet,image_info,metadata,experimental_info['kernel_smoothing_factor'])
                 
-                results['no_eq'].append((path[0], path[1], no_eq_hemocorrected[0], path[3], stim_info))
+                # results['no_eq'].append((path[0], path[1], no_eq_hemocorrected[0], path[3], stim_info))
                 results['no_eq_dff'].append((path[0], path[1], no_eq_hemocorrected_dff[0], path[3], stim_info))
                 
             else:
-                hemocorrect_only=hemocorrection(raw_blue,raw_violet,image_info,metadata,experimental_info['kernel_smoothing_factor'])
+                # hemocorrect_only=hemocorrection(raw_blue,raw_violet,image_info,metadata,experimental_info['kernel_smoothing_factor'])
                 hemocorrect_only_dff=hemocorrection(raw_dff_blue,raw_dff_violet,image_info,metadata,experimental_info['kernel_smoothing_factor'])
         
-                results['hemo_only'].append((path[0], path[1], hemocorrect_only[0], path[3], stim_info))
+                # results['hemo_only'].append((path[0], path[1], hemocorrect_only[0], path[3], stim_info))
                 results['hemo_only_dff'].append((path[0], path[1], hemocorrect_only_dff[0], path[3], stim_info))
     
         if i==0:
@@ -1125,7 +1127,6 @@ def process_all_trials(trial_info,experimental_info):
 results=process_all_trials(trial_info,experimental_info)
 #%% GENERAL PLAYING AND PLOTTING 
 
-reconstructed_raw_blue
 
 cammovie=play_movie(reconstructed_raw_dff_blue,timeaxis=2,fr=300)
 test=play_movie(trialaversgeddff,timeaxis=0,fr=30,play=False)
@@ -1180,10 +1181,8 @@ def save_results(folder,results,info=''):
     return datapath
 
 
-data_in='raw_blue_dff'
+data_in='raw_blue_denoised'
 stack_in=results[data_in]
-del results
-gc.collect()
 
 keys = set([x[1] for x in stack_in])
 grouped_by_direction = {}
@@ -1191,6 +1190,8 @@ for key in keys:
     grouped_by_direction[key] = [(x[2], x[3], x[4]) for x in stack_in if x[1] == key]
 stack=grouped_by_direction
 datapath=save_results(folder,stack,f'{data_in}_grouped')
+
+
 
 
 #%% LOAD DATA FROM FILE
