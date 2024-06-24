@@ -359,12 +359,10 @@ def denoise_pca(trace,n_components=0.9):
         reconstructed_frame = pca.inverse_transform(reduced_frame)
     
         reconstructed_frame = reconstructed_frame.reshape(trace.shape[0], trace.shape[1])
-        reconstructed_frame = reconstructed_frame.astype(dtype=np.uint8)
         reconstructed.append(reconstructed_frame)
     
     reconstructed= np.stack(reconstructed, axis=2)
     # f,ax=plt.subplots(1,3)
-    # ax.flatten()[0].imshow(equalized_blue[:, :, i])
     # ax.flatten()[1].imshow(reconstructed_frame)
     # ax.flatten()[2].imshow(reconstructed_frame.astype(dtype=np.uint8))
     
@@ -1068,8 +1066,8 @@ def process_all_trials(trial_info,experimental_info):
     
                 
         elif experimental_info['do_pca_denopising']:
-            reconstructed_raw_blue=denoise_pca(raw_blue)
-            reconstructed_raw_dff_blue=denoise_pca(raw_dff_blue)
+            reconstructed_raw_blue=denoise_pca(raw_blue)           
+            reconstructed_raw_dff_blue=denoise_pca(raw_dff_blue)            
             if store_all or experimental_info['blue_only']:
                 results['raw_blue_denoised'].append((path[0], path[1], reconstructed_raw_blue, path[3], stim_info))
                 results['raw_blue_dff_denoised'].append((path[0], path[1], reconstructed_raw_dff_blue, path[3], stim_info))
@@ -1125,6 +1123,19 @@ def process_all_trials(trial_info,experimental_info):
     return results
     
 results=process_all_trials(trial_info,experimental_info)
+#%% GENERAL PLAYING AND PLOTTING 
+
+reconstructed_raw_blue
+
+cammovie=play_movie(reconstructed_raw_dff_blue,timeaxis=2,fr=300)
+test=play_movie(trialaversgeddff,timeaxis=0,fr=30,play=False)
+# smoothed=cm.movie(spatially_smooth_timeseries(trialaversgeddff,axis=0,sigma=1.5))
+# test=play_movie(smoothed,timeaxis=0,fr=30,play=True)
+
+rects=plot_traces_of_areas(test,squarexcenter=175,squareycenter=175,squareside=2,squaredistance=20,stimsweep=k,stimonset=onset)
+
+cammovie=play_movie(trace,timeaxis=2,fr=300)
+
 #%% TRY TO SAVRE ALL RESULTS INDIVIDUALLY AS GROUPED STACKS
 def save_all_result(results):
     
@@ -1347,6 +1358,7 @@ params = {
           'signMapThr': 0.2,
           'eccMapFilterSigma': 15.0,
           'splitLocalMinCutStep': 5.,
+          
           'closeIter': 3,
           'openIter': 3,
           'dilationIter': 15,
@@ -1375,12 +1387,12 @@ plt.show()
 #%% single trials
 k='left2right'
 trial=0
-recording=stack_time_aligned_all[k].squeeze()
+recording=stack_time_aligned_all[k][:,:,:,trial].squeeze()
 meanimage=recording.mean(axis=2)
 stimtable=stack[k][trial][1]
 onset=all_alignment_info[k]['earliest_onset']
 
-singletrialmov=play_movie(recording,timeaxis=2,fr=300,play=True)
+singletrialmov=play_movie(recording,gain=2,timeaxis=2,fr=300,play=True)
 rects=plot_traces_of_areas(singletrialmov,squarexcenter=75,squareycenter=250,squareside=10,squaredistance=25,stimsweep=k,stimonset=onset)
 
     
