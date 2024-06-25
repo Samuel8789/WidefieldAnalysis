@@ -1126,18 +1126,14 @@ def process_all_trials(trial_info,experimental_info):
     
 results=process_all_trials(trial_info,experimental_info)
 #%% GENERAL PLAYING AND PLOTTING 
-
-
 cammovie=play_movie(reconstructed_raw_dff_blue,timeaxis=2,fr=300)
 test=play_movie(trialaversgeddff,timeaxis=0,fr=30,play=False)
 # smoothed=cm.movie(spatially_smooth_timeseries(trialaversgeddff,axis=0,sigma=1.5))
 # test=play_movie(smoothed,timeaxis=0,fr=30,play=True)
-
 rects=plot_traces_of_areas(test,squarexcenter=175,squareycenter=175,squareside=2,squaredistance=20,stimsweep=k,stimonset=onset)
-
 cammovie=play_movie(trace,timeaxis=2,fr=300)
 
-#%% TRY TO SAVRE ALL RESULTS INDIVIDUALLY AS GROUPED STACKS
+#%% TRY TO SAVE ALL RESULTS INDIVIDUALLY AS GROUPED STACKS
 def save_all_result(results):
     
     def save_results(folder,results,info=''):
@@ -1181,9 +1177,8 @@ def save_results(folder,results,info=''):
     return datapath
 
 
-data_in='raw_blue_denoised'
+data_in='raw_blue_dff_denoised'
 stack_in=results[data_in]
-
 keys = set([x[1] for x in stack_in])
 grouped_by_direction = {}
 for key in keys:
@@ -1191,8 +1186,8 @@ for key in keys:
 stack=grouped_by_direction
 datapath=save_results(folder,stack,f'{data_in}_grouped')
 
-
-
+del results
+gc.collect()
 
 #%% LOAD DATA FROM FILE
 def load_data(folder):
@@ -1294,13 +1289,12 @@ def align_and_trial_average(stack):
 
 stack_time_aligned_all,trial_averaged_movies, all_alignment_info=align_and_trial_average(stack)
 
-#%% soem plotting reviewing trial averaged movies
+#%% some plotting reviewing trial averaged movies
 stimulus='right2left'
-stimonset=58
 onset=all_alignment_info[stimulus]['earliest_onset']
 
 plt.close('all')
-plot_4exp_trials(stack_time_aligned_all,stimonset,x=200,y=200,width=1)
+plot_4exp_trials(stack_time_aligned_all,onset,x=200,y=200,width=1)
 for k,v in trial_averaged_movies.items():
     trialaversgeddff=v
     onset=all_alignment_info[k]['earliest_onset']
@@ -1319,7 +1313,7 @@ for k,v in trial_averaged_movies.items():
  
 def get_phase_maps1(movies:dict):
     """
-    IThis is what the elife paper suggest, just get the first frequency component, other than 0, is it w=ill be the closest to the stimulus frequency, which is 1/stim time
+    This is what the elife paper suggest, just get the first frequency component, other than 0, is it w=ill be the closest to the stimulus frequency, which is 1/stim time
     """
     
     phase_maps={}
@@ -1352,14 +1346,12 @@ def convert_phase_to_screen_pos(phase_maps):
 
 altitude_map = phase_maps["top2bottom"] - phase_maps["bottom2top"]
 azimuth_map = phase_maps["left2right"] - phase_maps["right2left"]
-
 params = {
           'phaseMapFilterSigma': 3,
           'signMapFilterSigma': 0.5,
           'signMapThr': 0.2,
           'eccMapFilterSigma': 15.0,
-          'splitLocalMinCutStep': 5.,
-          
+          'splitLocalMinCutStep': 5.,       
           'closeIter': 3,
           'openIter': 3,
           'dilationIter': 15,
@@ -1379,13 +1371,10 @@ trial = rm.RetinotopicMappingTrial(altPosMap=altitude_map,
                                    dateRecorded='160612',
                                    comments='This is an example.',
                                    params=params)
-
-
-
 _ = trial._getSignMap(isPlot=True)
 plt.show()
 
-#%% single trials
+#%% single trials plotting and reviewing
 k='left2right'
 trial=0
 recording=stack_time_aligned_all[k][:,:,:,trial].squeeze()
@@ -1397,7 +1386,7 @@ singletrialmov=play_movie(recording,gain=2,timeaxis=2,fr=300,play=True)
 rects=plot_traces_of_areas(singletrialmov,squarexcenter=75,squareycenter=250,squareside=10,squaredistance=25,stimsweep=k,stimonset=onset)
 
     
-#%% PLOTTING THE FFT ANALYSIS WITH A IT MORE DETAIL
+#%% PLOTTING THE FFT ANALYSIS WITH A BIT MORE DETAIL
 k='top2bottom'
 item=trial_averaged_movies[k]
 spectrumMovie = np.fft.fft(item, axis=0)
