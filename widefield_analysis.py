@@ -4,35 +4,12 @@ Created on Mon Apr 29 15:41:35 2024
 
 @author: sp3660
 """
-from scipy.io import loadmat
 import os
 import glob as glb
 from pathlib import PurePath
-import numpy as np
 import yaml
 import pickle
-import pandas as pd
-import wfield
-import numpy.typing as npt
-import matplotlib.pyplot as plt
-from scipy.stats import zscore
-from tifffile import imread
-from scipy.interpolate import interp1d
-#step by step widefield calcium retinotopic mapping
-from scipy.signal import convolve2d, find_peaks
-import matplotlib
-import cv2
-import skimage.io as tf
 import concurrent.futures
-from sklearn.decomposition import PCA
-from scipy.fft import rfft, rfftfreq
-from scipy.ndimage import gaussian_filter
-from NeuroAnalysisTools import RetinotopicMapping as rm
-import caiman as cm
-from caiman.motion_correction import MotionCorrect
-import matplotlib.patches as patches
-import matplotlib as mpl
-from scipy.ndimage import gaussian_filter
 import sys
 import time
 import glob
@@ -40,12 +17,73 @@ import tkinter as tk
 from tkinter import filedialog
 import gc
 
+from tifffile import imread
+
+
+import numpy as np
+import numpy.typing as npt
+import matplotlib.patches as patches
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+
+import pandas as pd
+from scipy.ndimage import gaussian_filter
+from scipy.fft import rfft, rfftfreq
+from scipy.signal import convolve2d, find_peaks
+from scipy.interpolate import interp1d
+from scipy.io import loadmat
+from scipy.stats import zscore
+
+
+from sklearn.decomposition import PCA
+import cv2 # used onbly for his equalization
+
+
+import caiman as cm # use for motion correction and some managing of movies and plotting
+from caiman.motion_correction import MotionCorrect
+
+# these two packages cause issues when seting environment
+import wfield # use to load the widefieldimagger files 
+#This installed with pip,particulalry breaks the opencv, pyqt packages installed by conda and reuired for caiman. Its only used once.
+# It breaks the matploltib install also  and the spyder ploting bakcend. Installed with pip and no dependencies. The problematic packages are the pip pyqt5
+from NeuroAnalysisTools import RetinotopicMapping as rm # used to create sign map, need to be installed manually by downloading the repo from github and install setup.py. It install pip opnecv
+
+"""
+this works in spyder standalone install for windows. I think mac has also a standalone. If no standalone available(linux) I use spdyer in an independent conda environment
+To select the environment for spyder kernel, in the main spyder winbdow at the bottom, after SPyder:version internal there is a tick,  click it and select pyhton interpreter from the correct conda environment and restart kernel
+create conda env with yml file, this is for windows, trying recreate the conda ennv on macs might potentially give problems
+>conda env create -f mapretnopip.yml
+>conda activate mapretclean
+>pip install wfield --no-deps
+>git clone https://github.com/zhuangjun1981/NeuroAnalysisTools.git 
+>cd NeuroAnalysisTools
+>python setup.py install
+
+problematic pip dependencies when installing wfield
+- opencv-python-headless==4.10.0.84
+- pyqt5-sip==12.13.0
+- pyqtwebengine==5.15.6
+- pyqtwebengine-qt5==5.15.2
+potentially problematic pip dependencies when installing NeuroAnalysisTools
+- opencv-python==4.10.0.84
+    
+IF yml CREATION IT DOESNT WORK ON MAC
+1.create a conda env with caiman first
+2.if using spyder install spyder-kernels
+3. install manually all dependencies for wfield and NeuroAnalysysTools with conda that weren't installed with caiman, except the packages mentione above
+    https://github.com/jcouto/wfield/blob/master/env.yml
+    https://github.com/zhuangjun1981/NeuroAnalysisTools/blob/master/requirements.txt
+4.install wfield and neuroanalysistools as above
+
+
+"""
+
 def play_movie(array,timeaxis=2,gain=1,fr=300,play=True):
 
     if timeaxis==2:
-        cammov = cm.movie( np.transpose(array, (2, 0, 1)))
+        cammov = cm.movie( np.transpose(array, (2, 0, 1))).astype(np.float32)
     elif timeaxis==0:
-        cammov=cm.movie(array)
+        cammov=cm.movie(array).astype(np.float32)
     if play:
         cammov.play(fr=fr, gain=gain)
     return cammov
@@ -112,7 +150,7 @@ def hemocorrection(blue_movie, violet_movie,image_info,metadata,smoothing_factor
     
     # # %% correction
     
-    to_lstsq: npt.NDArray[np.float64] = np.stack((norm_blue, smoothed_violet, np.ones(norm_blue.shape)),axis=2)
+    to_lstsq: npt.NDArray[np.float16] = np.stack((norm_blue, smoothed_violet, np.ones(norm_blue.shape)),axis=2)
     
     coeffs = []
     for i in range(to_lstsq.shape[0]):
@@ -123,8 +161,8 @@ def hemocorrection(blue_movie, violet_movie,image_info,metadata,smoothing_factor
     
     linreg_coeffs = np.array(coeffs).reshape(-1, 2)[:, :, np.newaxis]
     
-    linreg_prediction: npt.NDArray[np.float64] = smoothed_violet * linreg_coeffs[:, 0, :] + linreg_coeffs[:, 1, :]
-    corrected_data: npt.NDArray[np.float64] = norm_blue - linreg_prediction + np.mean(linreg_prediction)
+    linreg_prediction: npt.NDArray[np.float16] = smoothed_violet * linreg_coeffs[:, 0, :] + linreg_coeffs[:, 1, :]
+    corrected_data: npt.NDArray[np.float16] = norm_blue - linreg_prediction + np.mean(linreg_prediction)
     
     image_hemocorrected = corrected_data.reshape(
                 image_info['blue_shape'][0], image_info['blue_shape'][1], -1)
@@ -719,13 +757,13 @@ def align_timestamps_and_stim_onset(time_file:str,analog_data_full, image_info):
     begin_stimulus_idx=analog_data_full[2].get('begin_stimulus_idx')
     last_nonblack_frame=image_info.get('last_accepted_video_frame')
     
-    time_conversion_factor: np.float32 = np.float32(1000 / experimental_info['analog_sampling_rate'])
+    time_conversion_factor: np.float16 = np.float16(1000 / experimental_info['analog_sampling_rate'])
     
-    begin_last_frame_time: np.float32 = begin_last_frame_idx * time_conversion_factor
-    begin_stimulus_time: np.float32 = begin_stimulus_idx * time_conversion_factor
+    begin_last_frame_time: np.float16 = begin_last_frame_idx * time_conversion_factor
+    begin_stimulus_time: np.float16 = begin_stimulus_idx * time_conversion_factor
     
-    metadata_ft: npt.NDArray[np.float32] = metadata['frame_time']
-    frame_time: npt.NDArray[np.float32] = begin_last_frame_time+1 + metadata_ft- metadata_ft[last_nonblack_frame] 
+    metadata_ft: npt.NDArray[np.float16] = metadata['frame_time']
+    frame_time: npt.NDArray[np.float16] = begin_last_frame_time+1 + metadata_ft- metadata_ft[last_nonblack_frame] 
     
     
     # this method is more simple ,. but depedning ofn  where the alignment fals it could include frames with minimal stimuls overla
@@ -810,6 +848,8 @@ processed_data=PurePath(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Ana
 #SLECET DATASET
 folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\29-Apr-2024_1'
 folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\01-Jun-2024_1'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\01-Jun-2024'
+
 
 #%% metadata loading and file listings based on gui, this should be simplified here
 
@@ -907,8 +947,8 @@ def get_some_data_info(folder):
     frames_per_trial: np.int32 = np.int32((pre_stimulus_dur + post_stimulus_dur) * camera_sampling_rate / 2)
     pre_stimulus_dur: np.int32 = np.int32(pre_stimulus_dur)
     post_stimulus_dur: np.int32 = np.int32(post_stimulus_dur)
-    camera_sampling_rate: np.float32 = np.int32(camera_sampling_rate)
-    analog_sampling_rate: np.float32 = np.int32(analog_sampling_rate)
+    camera_sampling_rate: np.float16 = np.int32(camera_sampling_rate)
+    analog_sampling_rate: np.float16 = np.int32(analog_sampling_rate)
     stimulus_line: np.int32 = np.int32(stimulus_line)
     blue_line: np.int32 = np.int32(blue_line)
     violet_line: np.int32 = np.int32(violet_line)
@@ -921,7 +961,7 @@ def get_some_data_info(folder):
     def calculate_sweep_duration(x):
         # x = x[x['phase'] == 'sweep']
         duration = x['datetime'].iat[-1] - x['datetime'].iat[0]
-        return np.float32(1/duration.total_seconds())
+        return np.float16(1/duration.total_seconds())
     
     frequencies: pd.Series = grouped.apply(calculate_sweep_duration)
     frequencies.droplevel(level=0)
@@ -962,12 +1002,12 @@ BECAUSE HERE I HAVE GATEHRE INFOP FORM DAVIDES GUI I PUT ALL OF IT IN A DINGLE D
 """
 
 blue_only=False
-if '01-Jun-2024_1' in folder:
+if '01-Jun-2024' in folder:
     blue_only=True
 do_mot_correct=False
 smooth=False
 do_hist_equal=False
-do_pca_denopising=True
+do_pca_denopising=False
 
 experimental_info.update({'blue_only':blue_only,
                    'do_mot_correct':do_mot_correct,
@@ -1004,7 +1044,7 @@ def single_trial_procesing_review():
  #%%  MAIN PROCESS FUNCTION LOOP THROUGH ALL TRIALS GET A DATA OBJECT AND THEN REORGANIZE BY THE FORU TRIAL TIPES
     
 
-i=1
+i=0
 path=trial_info[i]
 store_all=True # this is to keep al variables for exploration an debugging
 
@@ -1075,7 +1115,7 @@ def process_all_trials(trial_info,experimental_info):
                 results['raw_blue_dff_denoised'].append((path[0], path[1], reconstructed_raw_dff_blue, path[3], stim_info))
             
                  
-        results['raw_blue_dff'].append((path[0], path[1], raw_dff_blue, path[3], stim_info))
+        results['raw_blue_dff'].append((path[0], path[1], raw_dff_blue.astype(np.float16), path[3], stim_info))
         # results['raw_blue_df'].append((path[0], path[1], raw_df_blue, path[3], stim_info))
         # results['raw_blue'].append((path[0], path[1], raw_blue, path[3], stim_info))
         
@@ -1177,7 +1217,7 @@ def save_results(folder,results,info=''):
     return datapath
 
 
-data_in='raw_blue_dff_denoised'
+data_in='raw_blue_dff'
 stack_in=results[data_in]
 keys = set([x[1] for x in stack_in])
 grouped_by_direction = {}
@@ -1231,14 +1271,14 @@ def align_and_trial_average(stack):
     def align_trials_onset_and_cut(stimon_info_t, trial_array, all_alignment_info,stimulus):
         
         onsets=[]
-        preframe_length_min = np.min(list(map(lambda x: np.sum(x), np.invert(stimon_info_t))))
+        preframe_length_min = np.min(list(map(lambda x: np.sum(np.invert(x)), stimon_info_t)))
         onsets.append(preframe_length_min)
-        starts=list(map(lambda x: np.sum(x)-preframe_length_min, np.invert(stimon_info_t)))
+        starts=list(map(lambda x: np.sum(np.invert(x))-preframe_length_min, stimon_info_t))
 
         onset_aligned=[trial[:,:,starts[i]:] for i,trial in enumerate(trial_array)]
 
-        min_length: np.int32 = np.min([trial.shape[2] for trial in onset_aligned])
-        max_length: np.int32 = np.max([trial.shape[2] for trial in onset_aligned])
+        min_length: np.uint8 = np.min([trial.shape[2] for trial in onset_aligned])
+        max_length: np.uint8 = np.max([trial.shape[2] for trial in onset_aligned])
         
         if stimulus=='left2right' and 'right2left' in all_alignment_info.keys():
              if min_length>all_alignment_info['right2left']['shortest_trial_frames']:
@@ -1257,10 +1297,10 @@ def align_and_trial_average(stack):
 
 
         
-        stack_cut: list[npt.NDArray[np.float64]] = [trial[:, :, :min_length] for trial in onset_aligned]
-        stack_time_aligned: npt.NDArray[np.float64] = np.stack(stack_cut, axis=3)
+        stack_cut: list[npt.NDArray[np.float16]] = [trial[:, :, :min_length] for trial in onset_aligned]
+        stack_time_aligned: npt.NDArray[np.float16] = np.stack(stack_cut, axis=3)
         
-        alignment_info={'all_prestim_frames':list(map(lambda x: np.sum(x), np.invert(stimon_info_t))),
+        alignment_info={'all_prestim_frames':list(map(lambda x: np.sum(np.invert(x)), stimon_info_t)),
                         'earliest_onset':preframe_length_min,
                         'cut_starts':starts,
                         'shortest_trial_frames':min_length,
@@ -1288,6 +1328,12 @@ def align_and_trial_average(stack):
     return stack_time_aligned_all,trial_averaged_movies, all_alignment_info
 
 stack_time_aligned_all,trial_averaged_movies, all_alignment_info=align_and_trial_average(stack)
+#%% ADD FUNCTION TO SAVE AVERAGED MOVIES AND ALIGNED TRIALS
+
+
+
+datapath=save_results(folder,stack,f'{data_in}_grouped')
+
 
 #%% some plotting reviewing trial averaged movies
 stimulus='right2left'
@@ -1337,15 +1383,30 @@ def get_phase_maps1(movies:dict):
     return phase_maps,powe_maps
 
 phase_maps,powe_maps=get_phase_maps1(trial_averaged_movies)
+
+altitude_map=phase_maps['bottom2top']-phase_maps['top2bottom']
+azimuth_map=phase_maps['right2left']-phase_maps['left2right'] 
 #%% TO DO
 def convert_phase_to_screen_pos(phase_maps):
     pass
     
+#%% PLOTTING MAPS INDEPENDENTLY
+from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+f,ax=plt.subplots(2,2)
+for i,item in enumerate(phase_maps.values()):
+    im=ax.flatten()[i].imshow(item  ,cmap='hsv')
+f,ax=plt.subplots(1,2)
+im=ax[0].imshow(altitude_map  ,cmap='hsv',vmin=0, vmax=2*np.pi)
+im=ax[1].imshow(azimuth_map  ,cmap='hsv',vmin=0, vmax=2*np.pi)
+divider = make_axes_locatable(ax[1])
+cax = divider.append_axes("right", size="5%", pad=0.05)
+cbar = f.colorbar(im, cax=cax)
+cbar.set_label('Value')
+
 
 #%% SIGN MAP
 
-altitude_map = phase_maps["top2bottom"] - phase_maps["bottom2top"]
-azimuth_map = phase_maps["left2right"] - phase_maps["right2left"]
+
 params = {
           'phaseMapFilterSigma': 3,
           'signMapFilterSigma': 0.5,
@@ -1383,7 +1444,7 @@ stimtable=stack[k][trial][1]
 onset=all_alignment_info[k]['earliest_onset']
 
 singletrialmov=play_movie(recording,gain=2,timeaxis=2,fr=300,play=True)
-rects=plot_traces_of_areas(singletrialmov,squarexcenter=75,squareycenter=250,squareside=10,squaredistance=25,stimsweep=k,stimonset=onset)
+rects=plot_traces_of_areas(singletrialmov,squarexcenter=175,squareycenter=175,squareside=10,squaredistance=25,stimsweep=k,stimonset=onset)
 
     
 #%% PLOTTING THE FFT ANALYSIS WITH A BIT MORE DETAIL
@@ -1432,20 +1493,6 @@ for p in [150,175,200,225]:
     max_reconstructed_index = np.argmax(reconstructed_signal.real)
     axs[2].axvline(x=max_reconstructed_index, color='r', linestyle='--', label=f'Max of Reconstructed Signal')
     plt.show()
-#%% PLOTTING MAPS INDEPENDENTLY
-from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-f,ax=plt.subplots(2,2)
-for i,item in enumerate(phase_maps.values()):
-    im=ax.flatten()[i].imshow(item  ,cmap='hsv')
-altitude_map=phase_maps['bottom2top']-phase_maps['top2bottom']
-azimuth_map=phase_maps['right2left']-phase_maps['left2right'] 
-f,ax=plt.subplots(1,2)
-im=ax[0].imshow(altitude_map  ,cmap='hsv',vmin=0, vmax=2*np.pi)
-im=ax[1].imshow(azimuth_map  ,cmap='hsv',vmin=0, vmax=2*np.pi)
-divider = make_axes_locatable(ax[1])
-cax = divider.append_axes("right", size="5%", pad=0.05)
-cbar = f.colorbar(im, cax=cax)
-cbar.set_label('Value')
 
  
 
