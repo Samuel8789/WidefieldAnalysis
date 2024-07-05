@@ -567,7 +567,8 @@ def binarize_and_detect_last_frames(analog_data:npt.NDArray, zscored:npt.NDArray
         f,ax=plt.subplots()
         ax.plot(analog_data[experimental_info['stimulus_line'], :]+1)
         ax.plot(analog_data[experimental_info['blue_line'], :])
-        ax.plot(analog_data[experimental_info['violet_line'], :]+0.2)
+        if not experimental_info['blue_only']:
+            ax.plot(analog_data[experimental_info['violet_line'], :]+0.2)
         ax.plot(analog_info['begin_last_frame_idx'],analog_data[experimental_info['blue_line']][analog_info['begin_last_frame_idx']],color='c',marker='^',label='begin_last_frame_idx')
 
         plt.show()
@@ -837,7 +838,11 @@ def plot_review_summary_of_alignment(analog_data_full, image_data, image_info, m
         
         
     plt.savefig(figure_saver /  f'trial_{trial_nr}_alignment_{proc}.pdf', dpi=300, bbox_inches='tight')
-    # plt.close('all')
+   
+    if not plot:
+        plt.close()
+    
+    plt.ion()
 
 
 #%% PATH MANAGING
@@ -853,7 +858,7 @@ processed_data=PurePath(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Ana
 folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\29-Apr-2024_1'
 folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\01-Jun-2024_1'
 folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\01-Jun-2024'
-# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\03-Jun-2024'
+folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\03-Jun-2024'
 # folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\03-Jun-2024_1'
 
 
@@ -1008,8 +1013,9 @@ experimental_info, trial_info=get_some_data_info(folder)
 BECAUSE HERE I HAVE GATEHRE INFOP FORM DAVIDES GUI I PUT ALL OF IT IN A DINGLE DICTIONARY TO PASS TO ALL FUNCTIONS THAT MIGHT NEED IT
 """
 
+blue_ony_datasets=['01-Jun-2024','03-Jun-2024']
 blue_only=False
-if '01-Jun-2024' in folder:
+if any(dtset in folder for dtset in blue_ony_datasets):
     blue_only=True
 do_mot_correct=False
 smooth=False
@@ -1057,7 +1063,7 @@ store_all=True # this is to keep al variables for exploration an debugging
 
 
 
-def process_all_trials(trial_info,experimental_info):
+def process_all_trials(trial_info,experimental_info): 
     results={'raw_blue':[],'raw_blue_df':[],'raw_blue_dff':[],
              'hemo_only':[],'hemo_only_dff':[],
              'full':[],'full_dff':[],
@@ -1071,16 +1077,16 @@ def process_all_trials(trial_info,experimental_info):
     store_all=False
     for i, path in enumerate(trial_info):
         print(f'Trial_{i+1}')
-    
+
         time_file, image_file_name, analog_file_name = path[2]
         analog_data_full=load_voltage_data(analog_file_name,plot=False)
         analog_data_full[0],analog_data_full[2]=correct_vis_stim_voltage(analog_data_full[0],analog_data_full[2],experimental_info,plot=False)
         analog_data_full[0],analog_data_full[2]=binarize_and_detect_last_frames(analog_data_full[0],analog_data_full[1],analog_data_full[2],experimental_info,plot=False)
         image_data,image_info=create_frame_masks(image_file_name,experimental_info,plot=False)
         metadata,stim_info=align_timestamps_and_stim_onset(time_file,analog_data_full, image_info)
-        plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, i, plot=True)
+        plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, i, plot=False)
        
-        
+    
         # full processing includes mot correction, normalization(dff), histogram equalization, PCA denoising , temporal smothing of violet and violet substraction of df/f images (id dff befor true) or of raw
         if experimental_info['do_mot_correct']:
             mot_corrected=mot_correct(image_data)
