@@ -790,7 +790,7 @@ def align_timestamps_and_stim_onset(time_file:str,analog_data_full, image_info):
 
     return metadata,stim_info
 
-def plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, trial_nr,interp_blue=np.empty((0,0,0)),interp_violet=np.empty((0,0,0))):
+def plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, trial_nr,interp_blue=np.empty((0,0,0)),interp_violet=np.empty((0,0,0)),plot=False):
     data_to_stimulus=zscore(image_data.mean(axis=(0, 1)))
     timestamps_nointerp=metadata['analog_aligned']['frame_time']
 
@@ -802,7 +802,11 @@ def plot_review_summary_of_alignment(analog_data_full, image_data, image_info, m
         interp_blue=zscore(interp_blue.mean(axis=(0, 1)))
         interp_violet=zscore(interp_violet.mean(axis=(0, 1)))
 
-    plt.ioff()
+    if not plot:
+        plt.ioff()
+    else:
+        plt.ion()
+        
     f,ax=plt.subplots(figsize=(6,6))
     ax.plot(analog_data_full[0][experimental_info['stimulus_line'], :]+0.5)
     ax.plot(analog_data_full[0][experimental_info['blue_line'], :],'b')
@@ -848,7 +852,10 @@ processed_data=PurePath(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Ana
 #SLECET DATASET
 folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\29-Apr-2024_1'
 folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\01-Jun-2024_1'
-# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\01-Jun-2024'
+folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\01-Jun-2024'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\03-Jun-2024'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\03-Jun-2024_1'
+
 
 
 #%% metadata loading and file listings based on gui, this should be simplified here
@@ -1071,7 +1078,7 @@ def process_all_trials(trial_info,experimental_info):
         analog_data_full[0],analog_data_full[2]=binarize_and_detect_last_frames(analog_data_full[0],analog_data_full[1],analog_data_full[2],experimental_info,plot=False)
         image_data,image_info=create_frame_masks(image_file_name,experimental_info,plot=False)
         metadata,stim_info=align_timestamps_and_stim_onset(time_file,analog_data_full, image_info)
-        # plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, i)
+        plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, i, plot=True)
        
         
         # full processing includes mot correction, normalization(dff), histogram equalization, PCA denoising , temporal smothing of violet and violet substraction of df/f images (id dff befor true) or of raw
@@ -1089,7 +1096,7 @@ def process_all_trials(trial_info,experimental_info):
         if not experimental_info['blue_only']:
             raw_violet,raw_dff_violet,raw_df_violet,metadata=proces_single_color(mot_corrected,metadata,image_info,'violet_mask')
        
-        # plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, i, raw_blue)
+        # plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, i, raw_blue, plot=False)
         # cammovie=play_movie(raw_dff_blue,timeaxis=2,fr=300)
         
         if experimental_info['do_hist_equal']:
