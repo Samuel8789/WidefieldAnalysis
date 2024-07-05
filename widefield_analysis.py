@@ -856,9 +856,9 @@ processed_data=PurePath(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Ana
 
 #SLECET DATASET
 folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\29-Apr-2024_1'
-folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\01-Jun-2024_1'
-folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\01-Jun-2024'
-folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\03-Jun-2024'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\01-Jun-2024_1'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\01-Jun-2024'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\03-Jun-2024'
 # folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\03-Jun-2024_1'
 
 
@@ -1020,13 +1020,13 @@ if any(dtset in folder for dtset in blue_ony_datasets):
 do_mot_correct=False
 smooth=False
 do_hist_equal=False
-do_pca_denopising=False
+do_pca_denoising=False
 
 experimental_info.update({'blue_only':blue_only,
                    'do_mot_correct':do_mot_correct,
                    'smooth':smooth,
                    'do_hist_equal':do_hist_equal,
-                   'do_pca_denopising':do_pca_denopising,                
+                   'do_pca_denoising':do_pca_denoising,                
                    })
 
 #%%
@@ -1084,7 +1084,7 @@ def process_all_trials(trial_info,experimental_info):
         analog_data_full[0],analog_data_full[2]=binarize_and_detect_last_frames(analog_data_full[0],analog_data_full[1],analog_data_full[2],experimental_info,plot=False)
         image_data,image_info=create_frame_masks(image_file_name,experimental_info,plot=False)
         metadata,stim_info=align_timestamps_and_stim_onset(time_file,analog_data_full, image_info)
-        plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, i, plot=False)
+        # plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, i, plot=False)
        
     
         # full processing includes mot correction, normalization(dff), histogram equalization, PCA denoising , temporal smothing of violet and violet substraction of df/f images (id dff befor true) or of raw
@@ -1098,9 +1098,13 @@ def process_all_trials(trial_info,experimental_info):
         else:
             smoothed=mot_corrected
             
-        raw_blue,raw_dff_blue,raw_df_blue,metadata=proces_single_color(smoothed,metadata,image_info,'blue_mask')
+        # raw_blue,raw_dff_blue,raw_df_blue,metadata=proces_single_color(smoothed,metadata,image_info,'blue_mask')
+        _,raw_dff_blue,_,metadata=proces_single_color(smoothed,metadata,image_info,'blue_mask')
+
         if not experimental_info['blue_only']:
-            raw_violet,raw_dff_violet,raw_df_violet,metadata=proces_single_color(mot_corrected,metadata,image_info,'violet_mask')
+            # raw_violet,raw_dff_violet,raw_df_violet,metadata=proces_single_color(mot_corrected,metadata,image_info,'violet_mask')
+            _,raw_dff_violet,_,metadata=proces_single_color(mot_corrected,metadata,image_info,'violet_mask')
+
        
         # plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, i, raw_blue, plot=False)
         # cammovie=play_movie(raw_dff_blue,timeaxis=2,fr=300)
@@ -1112,7 +1116,7 @@ def process_all_trials(trial_info,experimental_info):
                 # results['raw_blue_eq'].append((path[0], path[1], equalized_blue, path[3], stim_info))
                 results['raw_blue_dff_eq'].append((path[0], path[1], dff_equalized_blue, path[3], stim_info))
     
-            if experimental_info['do_pca_denopising']:
+            if experimental_info['do_pca_denoising']:
                 # reconstructed_eq_blue=denoise_pca(equalized_blue)
                 reconstructed_eq_blue_dff=denoise_pca(dff_equalized_blue)
                 if store_all or experimental_info['blue_only']:
@@ -1120,7 +1124,7 @@ def process_all_trials(trial_info,experimental_info):
                     results['raw_blue_dff_eq_denoised'].append((path[0], path[1], reconstructed_eq_blue_dff, path[3], stim_info))
     
                 
-        elif experimental_info['do_pca_denopising']:
+        elif experimental_info['do_pca_denoising']:
             # reconstructed_raw_blue=denoise_pca(raw_blue)           
             reconstructed_raw_dff_blue=denoise_pca(raw_dff_blue)            
             if store_all or experimental_info['blue_only']:
@@ -1138,7 +1142,7 @@ def process_all_trials(trial_info,experimental_info):
                 # equalized_violet=normalize_his_equal(raw_violet)
                 dff_equalized_violet=normalize_his_equal(raw_dff_violet)
              
-                if experimental_info['do_pca_denopising']:
+                if experimental_info['do_pca_denoising']:
                     # reconstructed_eq_violet=denoise_pca(equalized_violet)
                     reconstructed_eq_violet_dff=denoise_pca(dff_equalized_violet)
                 
@@ -1155,7 +1159,7 @@ def process_all_trials(trial_info,experimental_info):
                     # results['no_pca'].append((path[0], path[1], no_pca_hemocorrected[0], path[3], stim_info))
                     results['no_pca_dff'].append((path[0], path[1], no_pca_hemocorrected_dff[0], path[3], stim_info))
     
-            elif experimental_info['do_pca_denopising']:
+            elif experimental_info['do_pca_denoising']:
                 # reconstructed_raw_violet=denoise_pca(raw_violet)
                 reconstructed_raw_dff_violet=denoise_pca(raw_dff_violet)
             
@@ -1170,21 +1174,22 @@ def process_all_trials(trial_info,experimental_info):
                 hemocorrect_only_dff=hemocorrection(raw_dff_blue,raw_dff_violet,image_info,metadata,experimental_info['kernel_smoothing_factor'])
         
                 # results['hemo_only'].append((path[0], path[1], hemocorrect_only[0], path[3], stim_info))
-                results['hemo_only_dff'].append((path[0], path[1], hemocorrect_only_dff[0], path[3], stim_info))
+                results['hemo_only_dff'].append((path[0], path[1], hemocorrect_only_dff[0].astype(np.float16), path[3], stim_info))
     
         if i==0:
             results = {k: v for k, v in results.items() if v}
-        
+            
+     
     return results
     
 results=process_all_trials(trial_info,experimental_info)
 #%% GENERAL PLAYING AND PLOTTING 
-cammovie=play_movie(reconstructed_raw_dff_blue,timeaxis=2,fr=300)
-test=play_movie(trialaversgeddff,timeaxis=0,fr=30,play=False)
-# smoothed=cm.movie(spatially_smooth_timeseries(trialaversgeddff,axis=0,sigma=1.5))
-# test=play_movie(smoothed,timeaxis=0,fr=30,play=True)
-rects=plot_traces_of_areas(test,squarexcenter=175,squareycenter=175,squareside=2,squaredistance=20,stimsweep=k,stimonset=onset)
-cammovie=play_movie(trace,timeaxis=2,fr=300)
+# cammovie=play_movie(reconstructed_raw_dff_blue,timeaxis=2,fr=300)
+# test=play_movie(trialaversgeddff,timeaxis=0,fr=30,play=False)
+# # smoothed=cm.movie(spatially_smooth_timeseries(trialaversgeddff,axis=0,sigma=1.5))
+# # test=play_movie(smoothed,timeaxis=0,fr=30,play=True)
+# rects=plot_traces_of_areas(test,squarexcenter=175,squareycenter=175,squareside=2,squaredistance=20,stimsweep=k,stimonset=onset)
+# cammovie=play_movie(trace,timeaxis=2,fr=300)
 
 #%% TRY TO SAVE ALL RESULTS INDIVIDUALLY AS GROUPED STACKS
 def save_all_result(results):
@@ -1230,24 +1235,27 @@ def save_results(folder,results,info=''):
     return datapath
 
 
-data_in='raw_blue_dff'
-stack_in=results[data_in]
-keys = set([x[1] for x in stack_in])
-grouped_by_direction = {}
-for key in keys:
-    grouped_by_direction[key] = [(x[2], x[3], x[4]) for x in stack_in if x[1] == key]
-stack=grouped_by_direction
-datapath=save_results(folder,stack,f'{data_in}_grouped')
+proces_opt=['raw_blue_dff','hemo_only_dff']
+
+for data_in in proces_opt:
+    if data_in in results.keys():
+        stack_in=results[data_in]
+        keys = set([x[1] for x in stack_in])
+        grouped_by_direction = {}
+        for key in keys:
+            grouped_by_direction[key] = [(x[2], x[3], x[4]) for x in stack_in if x[1] == key]
+        stack=grouped_by_direction
+        datapath=save_results(folder,stack,f'{data_in}_grouped')
 
 del results
 gc.collect()
 
 #%% LOAD DATA FROM FILE
-def load_data(folder):
+def load_data(folder, info=''):
 
     search_string=PurePath(folder).stem
     # Search for pickle files containing the search string
-    search_pattern = os.path.join(processed_data, f"*{search_string}*.pkl")
+    search_pattern = os.path.join(processed_data, f"*{search_string}*{info}*.pkl")
     matching_files = glob.glob(search_pattern)
     
     # Sort files by creation time (most recent first)
@@ -1264,7 +1272,7 @@ def load_data(folder):
     file_path = filedialog.askopenfilename(
         initialdir=processed_data,
         title=f"Select a pickle file containing '{search_string}'",
-        filetypes=[("Pickle files", "*.pkl"), ("All files", "*.*")]
+        filetypes=[("Pickle files", f"*{search_string}*{info}*.pkl"), ("All files", "*.*")]
     )
     
     if not file_path:
@@ -1273,12 +1281,18 @@ def load_data(folder):
     # Load the selected pickle file
     with open(file_path, 'rb') as f:
         loaded_data = pickle.load(f)
+        
+    start=file_path.find('analysis_')+len('analysis_')
+    finish=file_path.find(info)
+            
     
-    return loaded_data
+    data_in=file_path[start:finish]
+    
+    return loaded_data, data_in
+#%%
+stack,data_in=load_data(folder,'_grouped')
 
-stack=load_data(folder)
-
-#%% 
+#%%  ALIGN AND TRIAL AVERAGE
 def align_and_trial_average(stack):
 
     def align_trials_onset_and_cut(stimon_info_t, trial_array, all_alignment_info,stimulus):
@@ -1349,7 +1363,7 @@ data_aligned_and_averaged={'aligned_stacks':stack_time_aligned_all,
 datapath=save_results(folder,data_aligned_and_averaged, f'{data_in}_data_aligned_and_averaged')
 
 
-data_aligned_and_averaged=load_data(folder)
+data_aligned_and_averaged,data_in=load_data(folder,'_data_aligned_and_averaged')
 #%% some plotting reviewing trial averaged movies
 stimulus='right2left'
 onset=data_aligned_and_averaged['all_alignment_info'][stimulus]['earliest_onset']
