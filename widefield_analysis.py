@@ -55,7 +55,7 @@ create conda env with yml file, this is for windows, trying recreate the conda e
 >conda env create -f mapretnopip.yml
 >conda activate mapretclean
 >pip install wfield --no-deps
->git clone https://github.com/zhuangjun1981/NeuroAnalysisTools.git 
+>git clone https://github.com/zhuangjun1981/NeuroAnalysisTools.git  (is already in my repo so not necessary)
 >cd NeuroAnalysisTools
 >python setup.py install
 
@@ -1328,22 +1328,24 @@ def align_and_trial_average(stack):
     return stack_time_aligned_all,trial_averaged_movies, all_alignment_info
 
 stack_time_aligned_all,trial_averaged_movies, all_alignment_info=align_and_trial_average(stack)
-#%% ADD FUNCTION TO SAVE AVERAGED MOVIES AND ALIGNED TRIALS
+data_aligned_and_averaged={'aligned_stacks':stack_time_aligned_all,
+                           'trial_averaged_movies':trial_averaged_movies,
+                           'all_alignment_info':all_alignment_info,
+                           }
+#%% SAVE OR LOAD TRIAL AVERAGED DATA
+datapath=save_results(folder,data_aligned_and_averaged, f'{data_in}_data_aligned_and_averaged')
 
 
-
-datapath=save_results(folder,stack,f'{data_in}_grouped')
-
-
+data_aligned_and_averaged=load_data(folder)
 #%% some plotting reviewing trial averaged movies
 stimulus='right2left'
-onset=all_alignment_info[stimulus]['earliest_onset']
+onset=data_aligned_and_averaged['all_alignment_info'][stimulus]['earliest_onset']
 
 plt.close('all')
-plot_4exp_trials(stack_time_aligned_all,onset,x=200,y=200,width=1)
-for k,v in trial_averaged_movies.items():
+plot_4exp_trials(data_aligned_and_averaged['aligned_stacks'],onset,x=200,y=200,width=1)
+for k,v in data_aligned_and_averaged['trial_averaged_movies'].items():
     trialaversgeddff=v
-    onset=all_alignment_info[k]['earliest_onset']
+    onset=data_aligned_and_averaged['all_alignment_info'][k]['earliest_onset']
 
     cammovie=play_movie(trialaversgeddff,timeaxis=0,fr=300)
     test=play_movie(trialaversgeddff,timeaxis=0,fr=30,play=False)
@@ -1382,7 +1384,7 @@ def get_phase_maps1(movies:dict):
         
     return phase_maps,powe_maps
 
-phase_maps,powe_maps=get_phase_maps1(trial_averaged_movies)
+phase_maps,powe_maps=get_phase_maps1(data_aligned_and_averaged['trial_averaged_movies'])
 
 altitude_map=phase_maps['bottom2top']-phase_maps['top2bottom']
 azimuth_map=phase_maps['right2left']-phase_maps['left2right'] 
@@ -1438,10 +1440,10 @@ plt.show()
 #%% single trials plotting and reviewing
 k='left2right'
 trial=0
-recording=stack_time_aligned_all[k][:,:,:,trial].squeeze()
+recording=data_aligned_and_averaged['aligned_stacks'][k][:,:,:,trial].squeeze()
 meanimage=recording.mean(axis=2)
 stimtable=stack[k][trial][1]
-onset=all_alignment_info[k]['earliest_onset']
+onset=data_aligned_and_averaged['all_alignment_info'][k]['earliest_onset']
 
 singletrialmov=play_movie(recording,gain=2,timeaxis=2,fr=300,play=True)
 rects=plot_traces_of_areas(singletrialmov,squarexcenter=175,squareycenter=175,squareside=10,squaredistance=25,stimsweep=k,stimonset=onset)
@@ -1449,7 +1451,7 @@ rects=plot_traces_of_areas(singletrialmov,squarexcenter=175,squareycenter=175,sq
     
 #%% PLOTTING THE FFT ANALYSIS WITH A BIT MORE DETAIL
 k='top2bottom'
-item=trial_averaged_movies[k]
+item=data_aligned_and_averaged['trial_averaged_movies'][k]
 spectrumMovie = np.fft.fft(item, axis=0)
 freqs = np.fft.fftfreq(item.shape[0])
 
@@ -1509,7 +1511,7 @@ import pywt
 # signal = ... 
 k='right2left'
 # Sample signal generation (Replace this with your actual signal)
-signal=trial_averaged_movies[k]
+signal=data_aligned_and_averaged['trial_averaged_movies'][k]
 #
 # smoothed=gaussian_smooth(signal, sigma=0, spatial=False, temporal=True,time_axis=0,radius=0)
 smoothed=signal
