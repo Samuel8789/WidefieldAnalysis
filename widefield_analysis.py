@@ -18,8 +18,6 @@ from tkinter import filedialog
 import gc
 
 from tifffile import imread
-
-
 import numpy as np
 import numpy.typing as npt
 import matplotlib.patches as patches
@@ -34,10 +32,8 @@ from scipy.interpolate import interp1d
 from scipy.io import loadmat
 from scipy.stats import zscore
 
-
 from sklearn.decomposition import PCA
 import cv2 # used onbly for his equalization
-
 
 import caiman as cm # use for motion correction and some managing of movies and plotting
 from caiman.motion_correction import MotionCorrect
@@ -530,13 +526,18 @@ def correct_vis_stim_voltage(analog_data:npt.NDArray, analog_info:dict,experimen
     stimulus_clean: npt.NDArray[np.bool_] = np.zeros(analog_in.shape, dtype=np.bool_)
     stimulus_clean[longest_sequence[0]:longest_sequence[1]] = True
     analog_data[experimental_info['stimulus_line'], :]=stimulus_clean
-    analog_info['begin_stimulus_idx'] = np.int32(np.argwhere(analog_data[experimental_info['stimulus_line'], :] == 1)[-1])[0]
+    if experimental_info['gabor']:
+        analog_info['begin_stimulus_idx'] = np.int32(np.argwhere(analog_data[experimental_info['stimulus_line'], :] == 1)[0])[0]
+
+    else:
+        analog_info['begin_stimulus_idx'] = np.int32(np.argwhere(analog_data[experimental_info['stimulus_line'], :] == 1)[-1])[0]
 
 
     if plot:
         f,ax=plt.subplots()
         ax.plot(stimulus_clean)
         ax.plot(analog_in)
+        ax.plot( analog_info['begin_stimulus_idx'], stimulus_clean[analog_info['begin_stimulus_idx']],'rx')
         plt.show()
     
     
@@ -855,11 +856,23 @@ example_folder = r'C:\Users\sp3660\Documents\Github\NeuroAnalysisTools\NeuroAnal
 processed_data=PurePath(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\DataObjects')
 
 #SLECET DATASET
-folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\29-Apr-2024_1'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\29-Apr-2024_1'
 # folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\01-Jun-2024_1'
 # folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\01-Jun-2024'
 # folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\03-Jun-2024'
 # folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\03-Jun-2024_1'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\OptoTest\20240804\04-Aug-2024'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\OptoTest\20240804\04-Aug-2024_1'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\OptoTest\20240804\04-Aug-2024_2'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\OptoTest\20240804\04-Aug-2024_3'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\OptoTest\20240804\04-Aug-2024_4'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_RegistrationTest\20-Aug-2024_1'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_RegistrationTest\20-Aug-2024_2'
+folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_RegistrationTest\24-Aug-2024_1'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_RegistrationTest\24-Aug-2024_2'
+
+
+
 
 
 
@@ -867,6 +880,11 @@ folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\29-Apr-2024_1'
 
 
 def get_some_data_info(folder):
+    
+    def calculate_sweep_duration(x):
+        # x = x[x['phase'] == 'sweep']
+        duration = x['datetime'].iat[-1] - x['datetime'].iat[0]
+        return np.float16(1/duration.total_seconds())
     
     metadata_file =loadmat(glb.glob(os.path.join(folder, '*.mat'))[0])
     times_files: list[str] = glb.glob(
@@ -918,8 +936,8 @@ def get_some_data_info(folder):
     #% metadata loading and file listings
     
     ttl_processed_data=PurePath(folder) / PurePath('ttl_output')
+    vis_stim_path=PurePath(folder) / PurePath('stim_info')
     wfield_processed_data=PurePath(folder) 
-    
     
     with open(defaultsfolder, 'r') as stream:
         experiment_parameters = yaml.safe_load(stream)
@@ -932,33 +950,60 @@ def get_some_data_info(folder):
     analog_sampling_rate=experiment_parameters['ANALOG_SAMPLING_RATE']['default']
     kernel_smoothing_factor=experiment_parameters['KERNEL_SMOOTHING_FACTOR']['default']
     
-    
-    with open(glb.glob(os.path.join(ttl_processed_data, '*.pkl'))[0], 'rb') as f:
-              settings = pickle.load(f)
+    path_stimuli: list[int, str, tuple, pd.DataFrame] = []
+
+    if os.path.isdir(ttl_processed_data):
+        with open(glb.glob(os.path.join(ttl_processed_data, '*.pkl'))[0], 'rb') as f:
+                  settings = pickle.load(f)
     
     #% vis stim loading
+        
+        visfiles={}
+        for file in glb.glob(os.path.join(ttl_processed_data, '*.csv')):
+            file_name = os.path.splitext(os.path.basename(file))[0]
+            df = pd.read_csv(file)
+            df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+            visfiles[ file_name] =df
+            del df, file, file_name
+        pre_stimulus_dur= 2
+        post_stimulus_dur= 6
+        visfiles['flip_info']['datetime']= pd.to_datetime( visfiles['flip_info']['datetime'])
+        
+        # self.directories: dict[str, str] = self._directories_and_import(wfield_processed_data)
+        flip_info=visfiles['flip_info']
+
+           
+        frames_before_stimulus_onset: np.int32 = np.int32(pre_stimulus_dur * camera_sampling_rate / 2)
+        frames_per_trial: np.int32 = np.int32((pre_stimulus_dur + post_stimulus_dur) * camera_sampling_rate / 2)
+        pre_stimulus_dur: np.int32 = np.int32(pre_stimulus_dur)
+        post_stimulus_dur: np.int32 = np.int32(post_stimulus_dur)
+        phase_map_smoothing_factor: np.int32 = 5
+        phase_map_smoothing_factor = np.int32(phase_map_smoothing_factor)
+        grouped = flip_info.groupby(["trial_start", "direction"])
+
+        
+        frequencies: pd.Series = grouped.apply(calculate_sweep_duration)
+        frequencies.droplevel(level=0)
+        frequencies = frequencies.groupby('direction').mean().round(3)
+        sweep_rate= frequencies.to_dict()
+        
+        zipped: list[tuple[tuple[str, str, str], tuple[int, pd.DataFrame]]] = list(zip(paths, flip_info.groupby('trial_start')))
+             
+        for (wfield_id, wfield_path), (stimulus_id, stimulus_data) in zipped:
+          
+            path_stimuli.append((wfield_id, stimulus_data['direction'].iat[0], wfield_path, stimulus_data))
     
+        total_files = len(path_stimuli)
     
-    visfiles={}
-    for file in glb.glob(os.path.join(ttl_processed_data, '*.csv')):
-        file_name = os.path.splitext(os.path.basename(file))[0]
-        df = pd.read_csv(file)
-        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-        visfiles[ file_name] =df
-        del df, file, file_name
-    pre_stimulus_dur= 2
-    post_stimulus_dur= 6
-    visfiles['flip_info']['datetime']= pd.to_datetime( visfiles['flip_info']['datetime'])
+    elif os.path.isdir(vis_stim_path):
        
-       # self.directories: dict[str, str] = self._directories_and_import(wfield_processed_data)
-    flip_info=visfiles['flip_info']
-    phase_map_smoothing_factor: np.int32 = 5
-       
-       
-    frames_before_stimulus_onset: np.int32 = np.int32(pre_stimulus_dur * camera_sampling_rate / 2)
-    frames_per_trial: np.int32 = np.int32((pre_stimulus_dur + post_stimulus_dur) * camera_sampling_rate / 2)
-    pre_stimulus_dur: np.int32 = np.int32(pre_stimulus_dur)
-    post_stimulus_dur: np.int32 = np.int32(post_stimulus_dur)
+        stimulus_data=pd.read_excel( glb.glob(os.path.join(vis_stim_path, '*.xlsx'))[0],engine='openpyxl')  
+        for (wfield_id, wfield_path) in paths:
+          
+            path_stimuli.append((wfield_id,stimulus_data['Trial Name'].iat[0], wfield_path, stimulus_data))
+    
+        total_files = len(path_stimuli)
+        
     camera_sampling_rate: np.float16 = np.int32(camera_sampling_rate)
     analog_sampling_rate: np.float16 = np.int32(analog_sampling_rate)
     stimulus_line: np.int32 = np.int32(stimulus_line)
@@ -966,36 +1011,14 @@ def get_some_data_info(folder):
     violet_line: np.int32 = np.int32(violet_line)
     
     kernel_smoothing_factor: np.int32 = np.int32(kernel_smoothing_factor)
-    phase_map_smoothing_factor = np.int32(phase_map_smoothing_factor)
     
-    grouped = flip_info.groupby(["trial_start", "direction"])
-    
-    def calculate_sweep_duration(x):
-        # x = x[x['phase'] == 'sweep']
-        duration = x['datetime'].iat[-1] - x['datetime'].iat[0]
-        return np.float16(1/duration.total_seconds())
-    
-    frequencies: pd.Series = grouped.apply(calculate_sweep_duration)
-    frequencies.droplevel(level=0)
-    frequencies = frequencies.groupby('direction').mean().round(3)
-    sweep_rate= frequencies.to_dict()
-    
+
     #% do some file dataset visstim alignment
-    
-    zipped: list[tuple[tuple[str, str, str], tuple[int, pd.DataFrame]]] = list(zip(paths, flip_info.groupby('trial_start')))
-    
     wfield_id: int
     stimulus_id: int
     wfield_path: tuple
     stimulus_data: tuple
-    
-    path_stimuli: list[int, str, tuple, pd.DataFrame] = []
-    for (wfield_id, wfield_path), (stimulus_id, stimulus_data) in zipped:
-      
-        path_stimuli.append((wfield_id, stimulus_data['direction'].iat[0], wfield_path, stimulus_data))
-
-    total_files = len(path_stimuli)
-    processed_files = 0
+   
 
     experimental_info={'stimulus_line':stimulus_line,
                        'blue_line':blue_line,
@@ -1013,10 +1036,16 @@ experimental_info, trial_info=get_some_data_info(folder)
 BECAUSE HERE I HAVE GATEHRE INFOP FORM DAVIDES GUI I PUT ALL OF IT IN A DINGLE DICTIONARY TO PASS TO ALL FUNCTIONS THAT MIGHT NEED IT
 """
 
-blue_ony_datasets=['01-Jun-2024','03-Jun-2024']
+blue_ony_datasets=['01-Jun-2024','03-Jun-2024','20-Aug-2024_2']
+gabor_datasets=['20-Aug-2024_1','24-Aug-2024_1']
 blue_only=False
+gabor=False
+
 if any(dtset in folder for dtset in blue_ony_datasets):
     blue_only=True
+    
+if any(dtset in folder for dtset in gabor_datasets):
+    gabor=True
 do_mot_correct=False
 smooth=False
 do_hist_equal=False
@@ -1026,7 +1055,8 @@ experimental_info.update({'blue_only':blue_only,
                    'do_mot_correct':do_mot_correct,
                    'smooth':smooth,
                    'do_hist_equal':do_hist_equal,
-                   'do_pca_denoising':do_pca_denoising,                
+                   'do_pca_denoising':do_pca_denoising,   
+                   'gabor':gabor
                    })
 
 #%%
@@ -1237,18 +1267,25 @@ def save_results(folder,results,info=''):
 
 proces_opt=['raw_blue_dff','hemo_only_dff']
 
+
 for data_in in proces_opt:
     if data_in in results.keys():
         stack_in=results[data_in]
+
         keys = set([x[1] for x in stack_in])
         grouped_by_direction = {}
         for key in keys:
             grouped_by_direction[key] = [(x[2], x[3], x[4]) for x in stack_in if x[1] == key]
+     
+
         stack=grouped_by_direction
         datapath=save_results(folder,stack,f'{data_in}_grouped')
 
 del results
 gc.collect()
+
+
+
 
 #%% LOAD DATA FROM FILE
 def load_data(folder, info=''):
@@ -1276,7 +1313,7 @@ def load_data(folder, info=''):
     )
     
     if not file_path:
-        raise FileNotFoundError("No file selected or dialog canceled by user")
+        raise FileNotFoundError("No file selected or dialog canceled by use+r")
     
     # Load the selected pickle file
     with open(file_path, 'rb') as f:
@@ -1366,6 +1403,7 @@ datapath=save_results(folder,data_aligned_and_averaged, f'{data_in}_data_aligned
 data_aligned_and_averaged,data_in=load_data(folder,'_data_aligned_and_averaged')
 #%% some plotting reviewing trial averaged movies
 stimulus='right2left'
+# stimulus='Gabor_1'
 onset=data_aligned_and_averaged['all_alignment_info'][stimulus]['earliest_onset']
 
 plt.close('all')
@@ -1464,6 +1502,17 @@ trial = rm.RetinotopicMappingTrial(altPosMap=altitude_map,
 _ = trial._getSignMap(isPlot=True)
 plt.show()
 
+array = (trial.signMap + 1) * 127.5
+array = np.clip(array, 0, 255)
+
+# Convert to uint8
+array = array.astype(np.uint8)
+
+
+signmap_path=processed_data /  f'{PurePath(folder).stem}_ret_map.jpg'
+
+# Save the array as a JPEG image
+cv2.imwrite(str(signmap_path), array)
 #%% single trials plotting and reviewing
 k='left2right'
 trial=0
@@ -1575,3 +1624,14 @@ cbar_bottom.set_label('Magnitude')
 
 plt.show()
 
+#%% GABOR PROCESSING
+data_aligned_and_averaged
+trial_averaged=cm.movie(data_aligned_and_averaged['trial_averaged_movies']['Gabor_1'].astype('float32'))
+trial1=cm.movie( np.transpose(data_aligned_and_averaged['aligned_stacks']['Gabor_1'][:,:,:,20], (2, 0, 1))).astype(np.float32)
+trial_averaged.play(fr=20)
+gabor_path=processed_data /  f'{PurePath(folder).stem}_gabor.tiff'
+
+trial_averaged.save(str(gabor_path))
+data_aligned_and_averaged['all_alignment_info']
+
+#%%OPTO PROCESSING
