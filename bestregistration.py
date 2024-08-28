@@ -8,7 +8,7 @@ target_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Ana
 reference_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\RecBin_NoMag_Map.jpg')
 roi_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\RecBin_Roi_Gabor.jpg')
 roi2_img= cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\RecBin_Roi_Map.jpg')
-mask_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\RecBin_Roi_Mask_Gabor.jpg')
+mask_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\RecBin_Roi_Mask_Gabor.png')
 mask2_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\RecBin_Roi_Mask_Map.jpg')
 # proj_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\RecBin_NoMag_Proj.jpg')
 # proj_roi= cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\RecBin_Roi_Proj.jpg')
@@ -17,11 +17,24 @@ gray_target = cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY)
 gray_ref = cv2.cvtColor(reference_img, cv2.COLOR_BGR2GRAY)
 gray_roi = cv2.cvtColor(roi_img, cv2.COLOR_BGR2GRAY)
 gray_roi2 = cv2.cvtColor(roi2_img, cv2.COLOR_BGR2GRAY)
-gray_mask = cv2.cvtColor(mask_img, cv2.COLOR_BGR2GRAY)
+gray_mask = np.invert(cv2.cvtColor(mask_img, cv2.COLOR_BGR2GRAY))
 gray_mask2 = cv2.cvtColor(mask2_img, cv2.COLOR_BGR2GRAY)
 # gray_proj_img = cv2.cvtColor(proj_img, cv2.COLOR_BGR2GRAY)
 # gray_proj_roi = cv2.cvtColor(proj_roi, cv2.COLOR_BGR2GRAY)
 # gray_proj_mask = cv2.cvtColor(proj_mask, cv2.COLOR_BGR2GRAY)
+
+
+f,ax=plt.subplots(3,2)
+f.tight_layout()
+ax.flatten()[0].imshow(gray_target)
+ax.flatten()[1].imshow(gray_ref)
+ax.flatten()[2].imshow(gray_roi)
+ax.flatten()[3].imshow(gray_roi2)
+ax.flatten()[4].imshow(gray_mask)
+ax.flatten()[5].imshow(gray_mask2)
+
+
+
 
  
 def get_homography_betwen_sessions(reference_img,target_img):
@@ -199,7 +212,7 @@ def get_translated_mask_coordinates(roi_coordinates, mask):
      # Replace with actual ROI coordinates
     
     # Find contours of the mask
-    _, binary_mask = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)
+    _, binary_mask = cv2.threshold(mask, 200, 255, cv2.THRESH_BINARY)
     
     contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)# Assuming the mask has one contour (outline)
     mask_contour = contours[0]

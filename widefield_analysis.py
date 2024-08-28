@@ -867,8 +867,8 @@ processed_data=PurePath(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Ana
 # folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\OptoTest\20240804\04-Aug-2024_3'
 # folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\OptoTest\20240804\04-Aug-2024_4'
 # folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_RegistrationTest\20-Aug-2024_1'
-# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_RegistrationTest\20-Aug-2024_2'
-folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_RegistrationTest\24-Aug-2024_1'
+folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_RegistrationTest\20-Aug-2024_2'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_RegistrationTest\24-Aug-2024_1'
 # folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_RegistrationTest\24-Aug-2024_2'
 
 
@@ -1343,24 +1343,7 @@ def align_and_trial_average(stack):
 
         min_length: np.uint8 = np.min([trial.shape[2] for trial in onset_aligned])
         max_length: np.uint8 = np.max([trial.shape[2] for trial in onset_aligned])
-        
-        if stimulus=='left2right' and 'right2left' in all_alignment_info.keys():
-             if min_length>all_alignment_info['right2left']['shortest_trial_frames']:
-                 min_length=all_alignment_info['right2left']['shortest_trial_frames']
-        
-        elif stimulus=='right2left' and 'left2right' in all_alignment_info.keys():
-            if min_length>all_alignment_info['left2right']['shortest_trial_frames']:
-                min_length=all_alignment_info['left2right']['shortest_trial_frames']
             
-        elif stimulus=='top2bottom' and 'bottom2top' in all_alignment_info.keys():
-            if min_length>all_alignment_info['bottom2top']['shortest_trial_frames']:
-                min_length=all_alignment_info['bottom2top']['shortest_trial_frames']
-        elif stimulus=='bottom2top' and 'top2bottom' in all_alignment_info.keys():
-            if min_length>all_alignment_info['top2bottom']['shortest_trial_frames']:
-                min_length=all_alignment_info['top2bottom']['shortest_trial_frames']
-
-
-        
         stack_cut: list[npt.NDArray[np.float16]] = [trial[:, :, :min_length] for trial in onset_aligned]
         stack_time_aligned: npt.NDArray[np.float16] = np.stack(stack_cut, axis=3)
         
@@ -1370,7 +1353,6 @@ def align_and_trial_average(stack):
                         'shortest_trial_frames':min_length,
                         'longest_trial_frames':max_length                           
                         }
-        
 
         return stack_time_aligned, alignment_info
         
@@ -1389,6 +1371,14 @@ def align_and_trial_average(stack):
         trial_averaged_movies[key]=cm.movie(np.transpose(trial_averaged, (2, 0, 1)))
         all_alignment_info[key]=alignment_info
         
+    pairs=(('left2right','right2left'),('bottom2top','top2bottom'))
+    for pair in pairs:    
+        shorted_trial_length_two_conditions=min(all_alignment_info[pair[0]]['shortest_trial_frames'],all_alignment_info[pair[1]]['shortest_trial_frames'])
+        for treat in pair:
+            all_alignment_info[treat]['shortest_trial_frames']=shorted_trial_length_two_conditions
+            stack_time_aligned_all[treat]=stack_time_aligned_all[treat][:,:,:shorted_trial_length_two_conditions,:]
+            trial_averaged_movies[treat]=trial_averaged_movies[treat][:shorted_trial_length_two_conditions,:,:]
+             
     return stack_time_aligned_all,trial_averaged_movies, all_alignment_info
 
 stack_time_aligned_all,trial_averaged_movies, all_alignment_info=align_and_trial_average(stack)
@@ -1510,9 +1500,12 @@ array = array.astype(np.uint8)
 
 
 signmap_path=processed_data /  f'{PurePath(folder).stem}_ret_map.jpg'
+signmap_path_np=processed_data /  f'{PurePath(folder).stem}_ret_map.npy'
+
 
 # Save the array as a JPEG image
 cv2.imwrite(str(signmap_path), array)
+np.save(signmap_path_np,array)
 #%% single trials plotting and reviewing
 k='left2right'
 trial=0
