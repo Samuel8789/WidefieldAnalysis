@@ -1109,9 +1109,9 @@ def process_all_trials(trial_info,experimental_info):
         print(f'Trial_{i+1}')
 
         time_file, image_file_name, analog_file_name = path[2]
-        analog_data_full=load_voltage_data(analog_file_name,plot=False)
-        analog_data_full[0],analog_data_full[2]=correct_vis_stim_voltage(analog_data_full[0],analog_data_full[2],experimental_info,plot=False)
-        analog_data_full[0],analog_data_full[2]=binarize_and_detect_last_frames(analog_data_full[0],analog_data_full[1],analog_data_full[2],experimental_info,plot=False)
+        analog_data_full=load_voltage_data(analog_file_name,plot=True)
+        analog_data_full[0],analog_data_full[2]=correct_vis_stim_voltage(analog_data_full[0],analog_data_full[2],experimental_info,plot=True)
+        analog_data_full[0],analog_data_full[2]=binarize_and_detect_last_frames(analog_data_full[0],analog_data_full[1],analog_data_full[2],experimental_info,plot=True)
         image_data,image_info=create_frame_masks(image_file_name,experimental_info,plot=False)
         metadata,stim_info=align_timestamps_and_stim_onset(time_file,analog_data_full, image_info)
         # plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, i, plot=False)
@@ -1389,7 +1389,7 @@ data_aligned_and_averaged={'aligned_stacks':stack_time_aligned_all,
 #%% SAVE OR LOAD TRIAL AVERAGED DATA
 datapath=save_results(folder,data_aligned_and_averaged, f'{data_in}_data_aligned_and_averaged')
 
-
+#%%
 data_aligned_and_averaged,data_in=load_data(folder,'_data_aligned_and_averaged')
 #%% some plotting reviewing trial averaged movies
 stimulus='right2left'
@@ -1402,8 +1402,14 @@ for k,v in data_aligned_and_averaged['trial_averaged_movies'].items():
     trialaversgeddff=v
     onset=data_aligned_and_averaged['all_alignment_info'][k]['earliest_onset']
 
-    cammovie=play_movie(trialaversgeddff,timeaxis=0,fr=300)
+    # cammovie=play_movie(trialaversgeddff,timeaxis=0,fr=300)
+    
+    timestr = time.strftime("%Y%m%d-%H%M%S")
+    trialaversgeddff.save(processed_data / f'{PurePath(folder).stem}_movie_{k}_{timestr}.tiff')
     test=play_movie(trialaversgeddff,timeaxis=0,fr=30,play=False)
+    
+    
+    
     # smoothed=cm.movie(spatially_smooth_timeseries(trialaversgeddff,axis=0,sigma=1.5))
     # test=play_movie(smoothed,timeaxis=0,fr=30,play=True)
 
