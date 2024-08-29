@@ -4,24 +4,24 @@ import matplotlib.pyplot as plt
 
 
 # Load images
-target_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\RecBin_NoMag_Gabor.jpg')
-reference_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\RecBin_NoMag_Map.jpg')
-roi_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\RecBin_Roi_Gabor.jpg')
-roi2_img= cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\RecBin_Roi_Map.jpg')
-mask_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\RecBin_Roi_Mask_Gabor.png')
-mask2_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\RecBin_Roi_Mask_Map.jpg')
-# proj_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\RecBin_NoMag_Proj.jpg')
-# proj_roi= cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\RecBin_Roi_Proj.jpg')
-# proj_mask = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\RecBin_Roi_Mask_Proj.jpg')
+target_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\Adjusted\RecBin_NoMag_Gabor.jpg')
+reference_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\Adjusted\RecBin_NoMag_Map.jpg')
+roi_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\Adjusted\RecBin_Roi_Gabor.jpg')
+roi2_img= cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\Adjusted\RecBin_Roi_Map.jpg')
+mask_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\Adjusted\RecBin_Roi_Mask_Gabor.png')
+mask2_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\Adjusted\RecBin_Roi_Mask_Map.jpg')
+proj_img = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\Adjusted\RecBin_NoMag_Proj.jpg')
+proj_roi= cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\Adjusted\RecBin_Roi_Proj.jpg')
+proj_mask = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\Adjusted\RecBin_Roi_Mask_Proj.jpg')
 gray_target = cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY)
 gray_ref = cv2.cvtColor(reference_img, cv2.COLOR_BGR2GRAY)
 gray_roi = cv2.cvtColor(roi_img, cv2.COLOR_BGR2GRAY)
 gray_roi2 = cv2.cvtColor(roi2_img, cv2.COLOR_BGR2GRAY)
 gray_mask = np.invert(cv2.cvtColor(mask_img, cv2.COLOR_BGR2GRAY))
 gray_mask2 = cv2.cvtColor(mask2_img, cv2.COLOR_BGR2GRAY)
-# gray_proj_img = cv2.cvtColor(proj_img, cv2.COLOR_BGR2GRAY)
-# gray_proj_roi = cv2.cvtColor(proj_roi, cv2.COLOR_BGR2GRAY)
-# gray_proj_mask = cv2.cvtColor(proj_mask, cv2.COLOR_BGR2GRAY)
+gray_proj_img = cv2.cvtColor(proj_img, cv2.COLOR_BGR2GRAY)
+gray_proj_roi = cv2.cvtColor(proj_roi, cv2.COLOR_BGR2GRAY)
+gray_proj_mask = cv2.cvtColor(proj_mask, cv2.COLOR_BGR2GRAY)
 
 
 f,ax=plt.subplots(3,2)
@@ -215,11 +215,21 @@ def get_translated_mask_coordinates(roi_coordinates, mask):
     _, binary_mask = cv2.threshold(mask, 200, 255, cv2.THRESH_BINARY)
     
     contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)# Assuming the mask has one contour (outline)
-    mask_contour = contours[0]
     
-    # Translate mask contour coordinates to reference image coordinates
-    mask_contour_translated = mask_contour + np.array([roi_x, roi_y])
-    
+    if len(contours)==1:
+       mask_contour = contours[0]
+       mask_contour_translated = mask_contour + np.array([roi_x, roi_y])
+
+    else:
+
+        # # Create a new mask to draw all contours
+        mask_contour = np.zeros_like(mask)        
+        # Draw each contour on the new mask
+        mask_contour_translated=[]
+        for contour in contours:
+            mask_contour_translated.append( contour + np.array([roi_x, roi_y]))
+
+
     return mask_contour_translated
 
 gabor_mask_full_fov=get_translated_mask_coordinates(gabor_roi_coordinates, gray_mask)
@@ -302,7 +312,9 @@ cv2.drawContours(proj_img_with_mask, [np.int32(reregistered_gabor_mask_full_fov)
 # cv2.polylines(proj_img_with_mask, [np.int32(registered_map_roi_coordinates)], True, (0, 0, 255), 2, cv2.LINE_AA)
 cv2.drawContours(proj_img_with_mask, [np.int32(registered_map_mask_full_fov)], -1, (255, 0, 255), 2)
 # cv2.polylines(proj_img_with_mask, [np.int32(proj_roi_coordinates)], True, (0, 0, 255), 2, cv2.LINE_AA)
-cv2.drawContours(proj_img_with_mask, [np.int32(proj_mask_full_fov)], -1, (255, 0, 255), 2)
+
+for rect in proj_mask_full_fov:
+    cv2.drawContours(proj_img_with_mask, [np.int32(rect)], -1, (255, 0, 255), 2)
 
 plt.subplot(1, 3, 3)
 plt.title("Reference Image with Transformed Mask")
@@ -314,25 +326,24 @@ plt.tight_layout()
 plt.show()
 #%% MAP PROJECTOR TO SAMPLE
 
-# HERE GET THE COORDIANTES IN PROJECTOR SPACE OF THE AREA ILLUMINATED, FOR NOW I USE THESE AS EXAMPLE RECTANGLE
-source_coords= np.array([
-    [490, 260],  # Top-left corner
-    [490, 460],  # Top-right corner
-    [790, 460],  # Bottom-right corner
-    [790, 260]   # Bottom-left corner
-], dtype='float32')
+#load projected image ref
+proj_ref_mask = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\20August\Adjusted\projected_ref.jpg')
+gary_proj_ref_mask = cv2.cvtColor(proj_ref_mask, cv2.COLOR_BGR2GRAY)
+_, binary_mask = cv2.threshold(gary_proj_ref_mask, 200, 255, cv2.THRESH_BINARY)
+ 
+source_coords, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)# Assuming the mask has one contour (outline)
+
+source_coords=[i.astype('float32') for i in source_coords]
+dest_coords = [i.astype('float32') for i in proj_mask_full_fov]
 
 
-# THESE ARE THE COORIDNATES OF THE PROJECTED MASK FITTED TO A RECTAN GLE IN THIS CASE
-dest_coords = proj_mask_full_fov.astype('float32')
-# rect = cv2.minAreaRect(dest_coords)
-# box = cv2.boxPoints(rect)
-box=dest_coords
+
 
 # THIS GETS THE TRANSFORMATION MATRIX BETEWEN SAMPLE SAPCE AND PROJECTOR SPACE
 # Compute the homography matrix
-H, _ = cv2.findHomography(source_coords, box)
-
+H, _ = cv2.findHomography(np.vstack(source_coords), np.vstack(dest_coords))
+# Compute the inverse of the homography matrix
+H_inv = np.linalg.inv(H)
 
 
 # # Ensure you have at least 3 points for affine transformation
@@ -359,8 +370,6 @@ print(H)
 new_roi_coords_dest_gabor = reregistered_gabor_mask_full_fov.astype('float32').reshape(-1, 1, 2)
 new_roi_coords_dest=registered_map_mask_full_fov.astype('float32').reshape(-1, 1, 2)
 
-# Compute the inverse of the homography matrix
-H_inv = np.linalg.inv(H)
 
 # Apply the inverse homography to the new ROI coordinates
 new_roi_coords_src = cv2.perspectiveTransform(new_roi_coords_dest, H_inv)
@@ -368,6 +377,7 @@ new_roi_coords_src_gabor = cv2.perspectiveTransform(new_roi_coords_dest_gabor, H
 
 
 
+#%% PLOTING THE PROJECTOR VS IMAGE SPACES
 
 transformed_coords = cv2.perspectiveTransform(np.array([source_coords]), H)[0]
 
@@ -492,8 +502,11 @@ import matplotlib.pyplot as plt
 
 # Load the larger and smaller masks
 # Ensure these masks are loaded as binary images (0s and 255s)
-smaller_mask = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\Mice\Final\binary_mask_gabor.jpg', cv2.IMREAD_GRAYSCALE)
-larger_mask = cv2.imread(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\Mice\Final\binary_mask_v1.jpg', cv2.IMREAD_GRAYSCALE)
+larger_mask = binary_mask
+
+
+smaller_mask =binary_mask_gabor
+
 
 # Check the sizes of the masks
 print(f"Larger mask size: {larger_mask.shape}")
@@ -509,17 +522,16 @@ new_mask = cv2.subtract(larger_mask, smaller_mask)
 # Display the masks
 plt.figure(figsize=(12, 6))
 
-plt.subplot(1, 3, 1)
-plt.title("Larger Mask")
-plt.imshow(larger_mask, cmap='gray')
-plt.axis('off')
+# plt.subplot(1, 3, 2)
+# plt.title("Larger Mask")
+# plt.imshow(larger_mask, cmap='gray')
+# plt.axis('off')
 
-plt.subplot(1, 3, 2)
-plt.title("Smaller Mask")
-plt.imshow(smaller_mask, cmap='gray')
-plt.axis('off')
+# plt.subplot(1, 3, 1)
+# plt.title("Smaller Mask")
+# plt.imshow(smaller_mask, cmap='gray')
+# plt.axis('off')
 
-plt.subplot(1, 3, 3)
 plt.title("New Mask (Larger - Smaller)")
 plt.imshow(new_mask, cmap='gray')
 plt.axis('off')

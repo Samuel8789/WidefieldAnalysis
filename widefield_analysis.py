@@ -1405,7 +1405,7 @@ for k,v in data_aligned_and_averaged['trial_averaged_movies'].items():
     # cammovie=play_movie(trialaversgeddff,timeaxis=0,fr=300)
     
     timestr = time.strftime("%Y%m%d-%H%M%S")
-    trialaversgeddff.save(processed_data / f'{PurePath(folder).stem}_movie_{k}_{timestr}.tiff')
+    trialaversgeddff.save(str(processed_data / f'{PurePath(folder).stem}_movie_{k}_{timestr}.tiff'))
     test=play_movie(trialaversgeddff,timeaxis=0,fr=30,play=False)
     
     
