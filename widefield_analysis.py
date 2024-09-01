@@ -23,7 +23,7 @@ import numpy.typing as npt
 import matplotlib.patches as patches
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-
+from pprint import pprint
 import pandas as pd
 from scipy.ndimage import gaussian_filter
 from scipy.fft import rfft, rfftfreq
@@ -787,7 +787,6 @@ def align_timestamps_and_stim_onset(time_file:str,analog_data_full, image_info):
     metadata: dict[str, dict[str, any]]=metadata_updated
     
     stim_info = metadata['analog_aligned']['stimon_frames']
-    stim_info = stimon_frames.astype(np.uint8)
     stim_info = stimon_frames[:image_info['last_accepted_video_frame']]
 
     return metadata,stim_info
@@ -1112,7 +1111,7 @@ def process_all_trials(trial_info,experimental_info):
         analog_data_full=load_voltage_data(analog_file_name,plot=True)
         analog_data_full[0],analog_data_full[2]=correct_vis_stim_voltage(analog_data_full[0],analog_data_full[2],experimental_info,plot=True)
         analog_data_full[0],analog_data_full[2]=binarize_and_detect_last_frames(analog_data_full[0],analog_data_full[1],analog_data_full[2],experimental_info,plot=True)
-        image_data,image_info=create_frame_masks(image_file_name,experimental_info,plot=False)
+        image_data,image_info=create_frame_masks(image_file_name,experimental_info,plot=True)
         metadata,stim_info=align_timestamps_and_stim_onset(time_file,analog_data_full, image_info)
         # plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, i, plot=False)
        
@@ -1330,7 +1329,7 @@ def load_data(folder, info=''):
 stack,data_in=load_data(folder,'_grouped')
 
 #%%  ALIGN AND TRIAL AVERAGE
-def align_and_trial_average(stack):
+def align_and_trial_average(stack,experimental_info):
 
     def align_trials_onset_and_cut(stimon_info_t, trial_array, all_alignment_info,stimulus):
         
@@ -1370,18 +1369,19 @@ def align_and_trial_average(stack):
         stack_time_aligned_all[key]=stack_time_aligned
         trial_averaged_movies[key]=cm.movie(np.transpose(trial_averaged, (2, 0, 1)))
         all_alignment_info[key]=alignment_info
-        
-    pairs=(('left2right','right2left'),('bottom2top','top2bottom'))
-    for pair in pairs:    
-        shorted_trial_length_two_conditions=min(all_alignment_info[pair[0]]['shortest_trial_frames'],all_alignment_info[pair[1]]['shortest_trial_frames'])
-        for treat in pair:
-            all_alignment_info[treat]['shortest_trial_frames']=shorted_trial_length_two_conditions
-            stack_time_aligned_all[treat]=stack_time_aligned_all[treat][:,:,:shorted_trial_length_two_conditions,:]
-            trial_averaged_movies[treat]=trial_averaged_movies[treat][:shorted_trial_length_two_conditions,:,:]
-             
+    
+    if not experimental_info['gabor']:
+        pairs=(('left2right','right2left'),('bottom2top','top2bottom'))
+        for pair in pairs:    
+            shorted_trial_length_two_conditions=min(all_alignment_info[pair[0]]['shortest_trial_frames'],all_alignment_info[pair[1]]['shortest_trial_frames'])
+            for treat in pair:
+                all_alignment_info[treat]['shortest_trial_frames']=shorted_trial_length_two_conditions
+                stack_time_aligned_all[treat]=stack_time_aligned_all[treat][:,:,:shorted_trial_length_two_conditions,:]
+                trial_averaged_movies[treat]=trial_averaged_movies[treat][:shorted_trial_length_two_conditions,:,:]
+                 
     return stack_time_aligned_all,trial_averaged_movies, all_alignment_info
 
-stack_time_aligned_all,trial_averaged_movies, all_alignment_info=align_and_trial_average(stack)
+stack_time_aligned_all,trial_averaged_movies, all_alignment_info=align_and_trial_average(stack,experimental_info)
 data_aligned_and_averaged={'aligned_stacks':stack_time_aligned_all,
                            'trial_averaged_movies':trial_averaged_movies,
                            'all_alignment_info':all_alignment_info,
