@@ -1,12 +1,5 @@
 width=1280;
 height=720;
-%#TEST IMAGES
-% CIRCLE
-M = zeros(height, width);
-M(height/2,width/2) = 1;
-%M(480,850) = 1;
-R = bwdist(M);
-image1 = uint8(R <= 150)*255;
 % RECTANGLE
 % Define the size of the main rectangle
 rect_width = 150;

@@ -860,15 +860,39 @@ processed_data=PurePath(r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Ana
 # folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\01-Jun-2024'
 # folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\03-Jun-2024'
 # folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\240601_RetMapping\03-Jun-2024_1'
-# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\OptoTest\20240804\04-Aug-2024'
-# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\OptoTest\20240804\04-Aug-2024_1'
-# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\OptoTest\20240804\04-Aug-2024_2'
-# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\OptoTest\20240804\04-Aug-2024_3'
-# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\OptoTest\20240804\04-Aug-2024_4'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_OptoTest\20240804\04-Aug-2024'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_OptoTest\20240804\04-Aug-2024_1'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_OptoTest\20240804\04-Aug-2024_2'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_OptoTest\20240804\04-Aug-2024_3'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_OptoTest\20240804\04-Aug-2024_4'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_OptoTest\20240731\31-Jul-2024'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_OptoTest\20240731\31-Jul-2024_1'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_OptoTest\20240731\31-Jul-2024_2'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_OptoTest\20240731\31-Jul-2024_3'
 # folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_RegistrationTest\20-Aug-2024_1'
-folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_RegistrationTest\20-Aug-2024_2'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_RegistrationTest\20-Aug-2024_2'
 # folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_RegistrationTest\24-Aug-2024_1'
 # folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_RegistrationTest\24-Aug-2024_2'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\20240813\13-Aug-2024'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\20240813\13-Aug-2024_1'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\20240813\13-Aug-2024_2'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\20240813\13-Aug-2024_3'
+
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\20241204Issues\Registration\20241017\17-Oct-2024_2'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\20241204Issues\Registration\20241017\17-Oct-2024_3'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\20241204Issues\Registration\18-Nov-2024'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\20241204Issues\Registration\20241205\05-Dec-2024'
+folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\20241204Issues\Registration\20241205\05-Dec-2024_1'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\20241204Issues\Registration\20241205\05-Dec-2024_2'
+# folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\20241204Issues\Registration\20241205\05-Dec-2024_3'
+
+
+
+blue_ony_datasets=['01-Jun-2024','03-Jun-2024','20-Aug-2024_2','17-Oct-2024_3','05-Dec-2024_3']
+gabor_datasets=['20-Aug-2024_1','24-Aug-2024_1','04-Aug-2024','04-Aug-2024_1','04-Aug-2024_2',
+                '04-Aug-2024_3','04-Aug-2024_4','31-Jul-2024','31-Jul-2024_1','31-Jul-2024_2',
+                '31-Jul-2024_3','13-Aug-2024','13-Aug-2024_1','13-Aug-2024_2','13-Aug-2024_3',
+                '18-Nov-2024','05-Dec-2024','05-Dec-2024_1','05-Dec-2024_2']
 
 
 
@@ -1035,8 +1059,6 @@ experimental_info, trial_info=get_some_data_info(folder)
 BECAUSE HERE I HAVE GATEHRE INFOP FORM DAVIDES GUI I PUT ALL OF IT IN A DINGLE DICTIONARY TO PASS TO ALL FUNCTIONS THAT MIGHT NEED IT
 """
 
-blue_ony_datasets=['01-Jun-2024','03-Jun-2024','20-Aug-2024_2']
-gabor_datasets=['20-Aug-2024_1','24-Aug-2024_1']
 blue_only=False
 gabor=False
 
@@ -1108,10 +1130,10 @@ def process_all_trials(trial_info,experimental_info):
         print(f'Trial_{i+1}')
 
         time_file, image_file_name, analog_file_name = path[2]
-        analog_data_full=load_voltage_data(analog_file_name,plot=True)
-        analog_data_full[0],analog_data_full[2]=correct_vis_stim_voltage(analog_data_full[0],analog_data_full[2],experimental_info,plot=True)
-        analog_data_full[0],analog_data_full[2]=binarize_and_detect_last_frames(analog_data_full[0],analog_data_full[1],analog_data_full[2],experimental_info,plot=True)
-        image_data,image_info=create_frame_masks(image_file_name,experimental_info,plot=True)
+        analog_data_full=load_voltage_data(analog_file_name,plot=False)
+        analog_data_full[0],analog_data_full[2]=correct_vis_stim_voltage(analog_data_full[0],analog_data_full[2],experimental_info,plot=False)
+        analog_data_full[0],analog_data_full[2]=binarize_and_detect_last_frames(analog_data_full[0],analog_data_full[1],analog_data_full[2],experimental_info,plot=False)
+        image_data,image_info=create_frame_masks(image_file_name,experimental_info,plot=False)
         metadata,stim_info=align_timestamps_and_stim_onset(time_file,analog_data_full, image_info)
         # plot_review_summary_of_alignment(analog_data_full, image_data, image_info, metadata,stim_info,experimental_info, i, plot=False)
        
@@ -1221,36 +1243,36 @@ results=process_all_trials(trial_info,experimental_info)
 # cammovie=play_movie(trace,timeaxis=2,fr=300)
 
 #%% TRY TO SAVE ALL RESULTS INDIVIDUALLY AS GROUPED STACKS
-def save_all_result(results):
+# def save_all_result(results):
     
-    def save_results(folder,results,info=''):
-        timestr = time.strftime("%Y%m%d-%H%M%S")
-        datapath=processed_data /  f'{PurePath(folder).stem}_analysis_{info}_{timestr}.pkl'
-        if not os.path.isfile(datapath):
-            with open(datapath, 'wb') as f:
-                # Pickle the 'data' dictionary using the highest protocol available.
-                pickle.dump(results, f, pickle.HIGHEST_PROTOCOL)
+#     def save_results(folder,results,info=''):
+#         timestr = time.strftime("%Y%m%d-%H%M%S")
+#         datapath=processed_data /  f'{PurePath(folder).stem}_analysis_{info}_{timestr}.pkl'
+#         if not os.path.isfile(datapath):
+#             with open(datapath, 'wb') as f:
+#                 # Pickle the 'data' dictionary using the highest protocol available.
+#                 pickle.dump(results, f, pickle.HIGHEST_PROTOCOL)
             
-        return datapath
+#         return datapath
     
-    for data_in,stack_in in results.items():
+#     for data_in,stack_in in results.items():
 
-        # data_in='raw_blue_dff'
-        # stack_in=results[data_in]
-        # del results
+#         # data_in='raw_blue_dff'
+#         # stack_in=results[data_in]
+#         # del results
         
-        keys = set([x[1] for x in stack_in])
-        grouped_by_direction = {}
-        for key in keys:
-            grouped_by_direction[key] = [(x[2], x[3], x[4]) for x in stack_in if x[1] == key]
-        stack=grouped_by_direction
+#         keys = set([x[1] for x in stack_in])
+#         grouped_by_direction = {}
+#         for key in keys:
+#             grouped_by_direction[key] = [(x[2], x[3], x[4]) for x in stack_in if x[1] == key]
+#         stack=grouped_by_direction
         
-        datapath=save_results(folder,stack,f'{data_in}_grouped')
+#         datapath=save_results(folder,stack,f'{data_in}_grouped')
         
-    del results
-    gc.collect()
+#     del results
+#     gc.collect()
 
-save_all_result(results)
+# save_all_result(results)
 #%% SAVE A SINGLE SELECTED PROCESSED GROUP STACK
 
 def save_results(folder,results,info=''):
@@ -1265,7 +1287,7 @@ def save_results(folder,results,info=''):
 
 
 proces_opt=['raw_blue_dff','hemo_only_dff']
-
+results.keys()
 
 for data_in in proces_opt:
     if data_in in results.keys():
@@ -1634,3 +1656,20 @@ trial_averaged.save(str(gabor_path))
 data_aligned_and_averaged['all_alignment_info']
 
 #%%OPTO PROCESSING
+# folder_control=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_OptoTest\20240804\04-Aug-2024'
+# folder_control=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_OptoTest\20240804\04-Aug-2024_1'
+# folder_opto=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_OptoTest\20240804\04-Aug-2024_2'
+folder_opto=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_OptoTest\20240804\04-Aug-2024_3'
+folder_control=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Data\2408_OptoTest\20240804\04-Aug-2024_4'
+
+
+data_aligned_and_averaged_opto,data_in_opto=load_data(folder_opto,'_data_aligned_and_averaged')
+data_aligned_and_averaged_control,data_in_control=load_data(folder_control,'_data_aligned_and_averaged')
+
+
+ta_movie_opto=data_aligned_and_averaged_opto['trial_averaged_movies']['Gabor_1']
+ta_movie_control=data_aligned_and_averaged_control['trial_averaged_movies']['Gabor_1']
+
+substracted=cm.movie(np.array(ta_movie_control)-np.array(ta_movie_opto)).astype(np.float32)
+gabor_substracted_path=processed_data /  f'{PurePath(folder_opto).stem}_substracted_gabor.tiff'
+substracted.save(str(gabor_substracted_path))
