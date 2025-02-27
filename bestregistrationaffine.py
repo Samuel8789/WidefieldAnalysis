@@ -463,7 +463,7 @@ def get_roi_coordinates(low_mag_input, roi_input, match_to_use=10, eps=10, min_s
     plt.show()
 
     return corners_larger
-
+#%%
 gabor_roi_coordinates = get_roi_coordinates(
     gray_gabor_ref, gray_gabor_roi, match_to_use=None, eps=10, min_samples=2, 
       angle_deviation_threshold=2, manual=True)

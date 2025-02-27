@@ -17,11 +17,11 @@ from datetime import datetime
 Registration Pipeline.
 Every new day of recording the previoue session is registered to the current FOV in the camera.
 We take 
-Affinee oimsetad of homography
+Affinee instead of homography
 
 """
 
-image_folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\3p020_registration_test2'
+image_folder=r'C:\Users\sp3660\Documents\Projects\LabNY\Amsterdam\Analysis\TempMovies\Animal3p020'
 
 
 # PATH MANAGING
@@ -168,16 +168,17 @@ def register_low_mag(low_mag_input, roi_input, match_to_use=10, eps=10, min_samp
 
 
     return affine_matrix
-
+#%%
 # After running this cell, I can check affine_matrix (select and F9)
 affine_matrix = register_low_mag(
     gray_mapr_ref, gray_gabor_ref, match_to_use=None, eps=10, min_samples=2, 
       angle_deviation_threshold=2, manual=True)
 
 save_affine_transform(affine_matrix, image_folder)
-
+affine_matrix=load_affine_transform(image_folder)
 # SAVE TRANSFORM
 # LOAD ALL AVAILABLE AND REVIEW WICH ONE IS BETTER
+
 
 #%% MANUALLY MATHICNG ROI
 import cv2
@@ -374,6 +375,15 @@ map_roi_coordinates = get_roi_coordinates(
 
 gabor_roi_coordinates_registered = cv2.transform(gabor_roi_coordinates.reshape(-1, 1, 2), affine_matrix)
 
+
+#%%
+loaded_trans_1=load_affine_transform(image_folder)
+loaded_trans_2=load_affine_transform(image_folder)
+
+all_transforms = [loaded_trans_1,loaded_trans_2]  # Add all calculated affine matrices here
+compare_affine_transforms(gabor_reference, all_transforms, gabor_roi_coordinates)
+
+
 #%% GET MASK COORDINATES ON BIG TARGET IMAGE
 
 def get_translated_mask_coordinates(roi_coordinates, mask):
@@ -481,11 +491,11 @@ ax[1].imshow(cv2.cvtColor(common_reference, cv2.COLOR_BGR2RGB))
 # REGISTERING THE REFERENCE FROM LAST DAY TO THE NEW PROJECTRO REFREENCE 
 
 proj_ref = cv2.imread(image_folder+r'\WholeBrain_ExperimentDay.jpg')
-proj_roi= cv2.imread(image_folder+r'\ROI_ExperimentDay.jpg')
-proj_mask = cv2.imread(image_folder+r'\projector_mask.jpg')
+# proj_roi= cv2.imread(image_folder+r'\ROI_ExperimentDay.jpg')
+# proj_mask = cv2.imread(image_folder+r'\projector_mask.jpg')
 gray_proj_ref = cv2.cvtColor(proj_ref, cv2.COLOR_BGR2GRAY)
-gray_proj_roi = cv2.cvtColor(proj_roi, cv2.COLOR_BGR2GRAY)
-gray_proj_mask = cv2.cvtColor(proj_mask, cv2.COLOR_BGR2GRAY)
+# gray_proj_roi = cv2.cvtColor(proj_roi, cv2.COLOR_BGR2GRAY)
+# gray_proj_mask = cv2.cvtColor(proj_mask, cv2.COLOR_BGR2GRAY)
 
 
 
@@ -495,13 +505,13 @@ affine_matrix2 = register_low_mag(
       angle_deviation_threshold=2, manual=True)
 
 
-proj_roi_coordinates = get_roi_coordinates(
-    gray_proj_ref, gray_proj_roi, match_to_use=None, eps=10, min_samples=2, 
-     angle_deviation_threshold=2, manual=True)
+# proj_roi_coordinates = get_roi_coordinates(
+#     gray_proj_ref, gray_proj_roi, match_to_use=None, eps=10, min_samples=2, 
+#      angle_deviation_threshold=2, manual=True)
 
 
 
-proj_mask_full_fov=get_translated_mask_coordinates(proj_roi_coordinates.reshape(-1, 1, 2), gray_proj_mask)
+# proj_mask_full_fov=get_translated_mask_coordinates(proj_roi_coordinates.reshape(-1, 1, 2), gray_proj_mask)
 
 
 
@@ -519,113 +529,67 @@ registered_map_mask_full_fov= cv2.transform(map_mask_full_fov.astype(np.float32)
 #plot the registration to experiment day
 
 
-common_reference2 = map_reference.copy()
-cv2.polylines(common_reference2, [np.int32(map_roi_coordinates)], True, (0, 0, 255), 2, cv2.LINE_AA)
-cv2.drawContours(common_reference2, [np.int32(map_mask_full_fov)], -1, (255, 0, 255), 2)
+# common_reference2 = map_reference.copy()
+# cv2.polylines(common_reference2, [np.int32(map_roi_coordinates)], True, (0, 0, 255), 2, cv2.LINE_AA)
+# cv2.drawContours(common_reference2, [np.int32(map_mask_full_fov)], -1, (255, 0, 255), 2)
 
-cv2.polylines(common_reference2, [np.int32(gabor_roi_coordinates_registered)], True, (0, 255, 0), 2, cv2.LINE_AA)
-cv2.drawContours(common_reference2, [registered_gabor_mask_full_fov], -1, (255, 0, 0), 2)
-cv2.drawContours(common_reference2, [registered_gabor2_mask_full_fov], -1, (255, 0, 0), 2)
-cv2.drawContours(common_reference2, [registered_gabor3_mask_full_fov], -1, (255, 0, 0), 2)
+# cv2.polylines(common_reference2, [np.int32(gabor_roi_coordinates_registered)], True, (0, 255, 0), 2, cv2.LINE_AA)
+# cv2.drawContours(common_reference2, [registered_gabor_mask_full_fov], -1, (255, 0, 0), 2)
+# cv2.drawContours(common_reference2, [registered_gabor2_mask_full_fov], -1, (255, 0, 0), 2)
+# cv2.drawContours(common_reference2, [registered_gabor3_mask_full_fov], -1, (255, 0, 0), 2)
 
-proj_reference_with_mask = proj_ref.copy()
-cv2.polylines(proj_reference_with_mask, [np.int32(proj_roi_coordinates)], True, (0, 0, 255), 2, cv2.LINE_AA)
-for rect in proj_mask_full_fov:
-    cv2.drawContours(proj_reference_with_mask, [np.int32(rect)], -1, (255, 0, 255), 2)
+# proj_reference_with_mask = proj_ref.copy()
+# cv2.polylines(proj_reference_with_mask, [np.int32(proj_roi_coordinates)], True, (0, 0, 255), 2, cv2.LINE_AA)
+# for rect in proj_mask_full_fov:
+#     cv2.drawContours(proj_reference_with_mask, [np.int32(rect)], -1, (255, 0, 255), 2)
 
 
-f,ax=plt.subplots(1,2)
-ax[0].imshow(cv2.cvtColor(common_reference2, cv2.COLOR_BGR2RGB))
-ax[1].imshow(cv2.cvtColor(proj_reference_with_mask, cv2.COLOR_BGR2RGB))
+# f,ax=plt.subplots(1,2)
+# ax[0].imshow(cv2.cvtColor(common_reference2, cv2.COLOR_BGR2RGB))
+# ax[1].imshow(cv2.cvtColor(proj_reference_with_mask, cv2.COLOR_BGR2RGB))
 
-#%%
+# #%%
+
+# final_reference = proj_ref.copy()
+# cv2.polylines(final_reference, [np.int32(registered_map_roi_coordinates)], True, (0, 0, 255), 2, cv2.LINE_AA)
+# cv2.drawContours(final_reference, [np.int32(registered_map_mask_full_fov)], -1, (255, 0, 255), 2)
+# cv2.polylines(final_reference, [np.int32(reregistered_gabor_roi_coordinates)], True, (0, 255, 0), 2, cv2.LINE_AA)
+# cv2.drawContours(final_reference, [np.int32(reregistered_gabor_mask_full_fov)], -1, (255, 0, 0), 2)
+
+# cv2.polylines(final_reference, [np.int32(proj_roi_coordinates)], True, (0, 0, 255), 2, cv2.LINE_AA)
+# for rect in proj_mask_full_fov:
+#     cv2.drawContours(final_reference, [np.int32(rect)], -1, (255, 0, 255), 2)
+
+
+# f,ax=plt.subplots(1)
+# ax.imshow(cv2.cvtColor(final_reference, cv2.COLOR_BGR2RGB))
+
+
+
+#%% CREATE COMBINED MASK
 
 final_reference = proj_ref.copy()
-cv2.polylines(final_reference, [np.int32(registered_map_roi_coordinates)], True, (0, 0, 255), 2, cv2.LINE_AA)
 cv2.drawContours(final_reference, [np.int32(registered_map_mask_full_fov)], -1, (255, 0, 255), 2)
-cv2.polylines(final_reference, [np.int32(reregistered_gabor_roi_coordinates)], True, (0, 255, 0), 2, cv2.LINE_AA)
 cv2.drawContours(final_reference, [np.int32(reregistered_gabor_mask_full_fov)], -1, (255, 0, 0), 2)
-
-cv2.polylines(final_reference, [np.int32(proj_roi_coordinates)], True, (0, 0, 255), 2, cv2.LINE_AA)
-for rect in proj_mask_full_fov:
-    cv2.drawContours(final_reference, [np.int32(rect)], -1, (255, 0, 255), 2)
-
-
 f,ax=plt.subplots(1)
 ax.imshow(cv2.cvtColor(final_reference, cv2.COLOR_BGR2RGB))
 
-#%%
-projected_ref_mask = cv2.imread(r'C:\Users\calci\Dropbox\projected_ref.jpg')
-gray_projected_ref_mask = cv2.cvtColor(projected_ref_mask, cv2.COLOR_BGR2GRAY)
-_, binary_proj = cv2.threshold(gray_projected_ref_mask, 200, 255, cv2.THRESH_BINARY)
- 
-source_coords, _ = cv2.findContours(binary_proj, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)# Assuming the mask has one contour (outline)
-
-source_coords=[i.squeeze().astype('float32') for i in source_coords]
-dest_coords = [i.squeeze().astype('float32') for i in proj_mask_full_fov]
-
-
-
-def order_corners(corners):
-    # Compute centroid
-    center = np.mean(corners, axis=0)
-    # Sort points by angle relative to centroid
-    ordered = sorted(corners, key=lambda point: np.arctan2(point[1] - center[1], point[0] - center[0]))
-    return np.array(ordered, dtype='float32')
-
-# Example usage
-source_coords = [order_corners(c) for c in source_coords]
-dest_coords = [order_corners(c) for c in dest_coords]
 
 
 
 
-
-# THIS GETS THE TRANSFORMATION MATRIX BETEWEN SAMPLE SAPCE AND PROJECTOR SPACE
-# Compute the homography matrix
-H, _ = cv2.findHomography(np.vstack(source_coords), np.vstack(dest_coords))
-# Compute the inverse of the homography matrix
-H_inv = np.linalg.inv(H)
-
-# Print the homography matrix
-print("Homography Matrix:")
-print(H)
-
-
-final_reference = proj_ref.copy()
-cv2.polylines(final_reference, [np.int32(proj_roi_coordinates)], True, (0, 0, 255), 2, cv2.LINE_AA)
-for rect in proj_mask_full_fov:
-    cv2.drawContours(final_reference, [np.int32(rect)], -1, (255, 0, 255), 2)
-projected_ref = np.zeros(list(gray_projected_ref_mask.shape)+[3],'uint8')
-for rect in source_coords:
-    cv2.drawContours(projected_ref, [np.int32(rect)], -1, (255, 0, 255), 2)
-f,ax=plt.subplots(1,2)
-ax[0].imshow(cv2.cvtColor(final_reference, cv2.COLOR_BGR2RGB))
-ax[1].imshow(cv2.cvtColor(projected_ref, cv2.COLOR_BGR2RGB))
-
-
-checked_coordinates=[cv2.perspectiveTransform(sq_coord, H_inv) for sq_coord in dest_coords]
-projected_ref = np.zeros(list(gray_projected_ref_mask.shape)+[3],'uint8')
-for rect in source_coords:
-    cv2.drawContours(projected_ref, [np.int32(rect)], -1, (255, 0, 255), 2)
-calculated_ref = np.zeros(list(gray_projected_ref_mask.shape)+[3],'uint8')
-for rect in checked_coordinates:
-    cv2.drawContours(calculated_ref, [np.int32(rect)], -1, (255, 0, 255), 2)
-f,ax=plt.subplots(1,2)
-ax[0].imshow(cv2.cvtColor(projected_ref, cv2.COLOR_BGR2RGB))
-ax[1].imshow(cv2.cvtColor(calculated_ref, cv2.COLOR_BGR2RGB))
 
 #%%
 
 
-# THIS CONVERTS GABOR AND V1 MASK TO PROJECOT RESPACE
-new_roi_coords_dest_gabor = reregistered_gabor_mask_full_fov.astype('float32').reshape(-1, 1, 2)
-new_roi_coords_dest=registered_map_mask_full_fov.astype('float32').reshape(-1, 1, 2)
+# # THIS CONVERTS GABOR AND V1 MASK TO PROJECOT RESPACE
+# new_roi_coords_dest_gabor = reregistered_gabor_mask_full_fov.astype('float32').reshape(-1, 1, 2)
+# new_roi_coords_dest=registered_map_mask_full_fov.astype('float32').reshape(-1, 1, 2)
 
 
-# Apply the inverse homography to the new ROI coordinates
-new_roi_coords_src = cv2.perspectiveTransform(new_roi_coords_dest, H_inv)
-new_roi_coords_src_gabor = cv2.perspectiveTransform(new_roi_coords_dest_gabor, H_inv)
+# # Apply the inverse homography to the new ROI coordinates
+# new_roi_coords_src = cv2.perspectiveTransform(new_roi_coords_dest, H_inv)
+# new_roi_coords_src_gabor = cv2.perspectiveTransform(new_roi_coords_dest_gabor, H_inv)
 #%%
 import numpy as np
 import cv2
